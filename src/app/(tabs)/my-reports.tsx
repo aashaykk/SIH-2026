@@ -1,142 +1,153 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
 import { Text, SegmentedButtons, Card, Avatar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { getMyReports } from '../../services/incidents.api';
+import { Incident } from '../../types/models';
+import { LoadingState } from '../../components/UI/LoadingState';
+import { EmptyState } from '../../components/UI/EmptyState';
+import { ErrorState } from '../../components/UI/ErrorState';
 import { COLORS, THEME, CIVIC_CATEGORIES, ISSUE_STATUSES, ISSUE_PRIORITIES } from '../../config/constants';
-
-interface IssueItem {
-  id: string;
-  title: string;
-  category: string;
-  status: 'SUBMITTED' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'PENDING_SYNC';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  createdAt: string;
-  locationName: string;
-}
 
 export default function MyReportsScreen() {
   const [filter, setFilter] = useState('active');
   const router = useRouter();
 
-  // Mock list of issues
-  const mockIssues: IssueItem[] = [
-    {
-      id: '101',
-      title: 'Large Pothole near Central Park Gate 2',
-      category: 'pothole',
-      status: 'IN_PROGRESS',
-      priority: 'HIGH',
-      createdAt: '2026-08-22',
-      locationName: 'Central Park Main Rd, Ward 4',
-    },
-    {
-      id: '102',
-      title: 'Uncollected Garbage Pile outside Market',
-      category: 'garbage',
-      status: 'RESOLVED',
-      priority: 'MEDIUM',
-      createdAt: '2026-08-20',
-      locationName: 'City Market Square, Ward 12',
-    },
-    {
-      id: '103',
-      title: 'Water pipe burst leakage on pavement',
-      category: 'water_leakage',
-      status: 'ASSIGNED',
-      priority: 'HIGH',
-      createdAt: '2026-08-23',
-      locationName: '3rd Cross St, Sector 2',
-    },
-    {
-      id: '104',
-      title: 'Streetlight blinking continuously',
-      category: 'streetlight',
-      status: 'SUBMITTED',
-      priority: 'LOW',
-      createdAt: '2026-08-24',
-      locationName: 'Greenwood Lane, Ward 7',
-    },
-  ];
-
-  const filteredIssues = mockIssues.filter(issue => {
-    if (filter === 'active') {
-      return issue.status !== 'RESOLVED' && issue.status !== 'PENDING_SYNC';
-    }
-    if (filter === 'resolved') {
-      return issue.status === 'RESOLVED';
-    }
-    if (filter === 'offline') {
-      return issue.status === 'PENDING_SYNC';
-    }
-    return true; // 'all'
+  const {
+    data: reports,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = useQuery({
+    queryKey: ['myReports', filter],
+    queryFn: () => getMyReports(filter),
   });
 
   const getCategoryDetails = (catId: string) => {
-    return CIVIC_CATEGORIES.find(c => c.id === catId) || { label: 'General', icon: 'alert-circle', color: COLORS.textSecondary };
+    return (
+      CIVIC_CATEGORIES.find((c) => c.id === catId) || {
+        label: 'General Issue',
+        icon: 'alert-circle',
+        color: COLORS.primary,
+      }
+    );
   };
 
-  const renderIssueCard = ({ item }: { item: IssueItem }) => {
+  const getPriorityBadgeColor = (level: string) => {
+    switch (level) {
+      case 'CRITICAL':
+        return COLORS.severityCritical;
+      case 'HIGH':
+        return COLORS.severityHigh;
+      case 'MEDIUM':
+        return COLORS.severityMedium;
+      case 'LOW':
+      default:
+        return COLORS.severityLow;
+    }
+  };
+
+  const renderIncidentCard = ({ item }: { item: Incident }) => {
     const cat = getCategoryDetails(item.category);
-    const statusInfo = ISSUE_STATUSES[item.status];
-    const priorityInfo = ISSUE_PRIORITIES[item.priority];
+    const statusInfo = ISSUE_STATUSES[item.status] || {
+      label: item.status,
+      color: COLORS.primary,
+      icon: 'information-outline',
+    };
+    const priorityColor = getPriorityBadgeColor(item.priority.level);
 
     return (
-      <Card 
-        style={styles.card} 
-        mode="contained" 
+      <Card
+        style={styles.card}
+        mode="contained"
         onPress={() => router.push(`/issues/${item.id}` as any)}
       >
         <Card.Content style={styles.cardContent}>
           <View style={styles.cardHeader}>
-            <Avatar.Icon 
-              size={36} 
-              icon={cat.icon} 
-              style={{ backgroundColor: cat.color + '15' }} // 15% opacity tint
-              color={cat.color} 
+            <Avatar.Icon
+              size={40}
+              icon={cat.icon}
+              style={{ backgroundColor: cat.color + '18' }}
+              color={cat.color}
             />
             <View style={styles.headerText}>
               <Text variant="titleMedium" style={styles.issueTitle} numberOfLines={1}>
-                {item.title}
+                {item.title || `${cat.label} Incident`}
               </Text>
-              <Text variant="bodySmall" style={styles.locationText}>
-                {item.locationName}
+              <Text variant="bodySmall" style={styles.locationText} numberOfLines={1}>
+                {item.ward} {item.locationName ? `• ${item.locationName}` : ''}
               </Text>
             </View>
           </View>
+
+          {item.description ? (
+            <Text variant="bodySmall" style={styles.descriptionText} numberOfLines={2}>
+              {item.description}
+            </Text>
+          ) : null}
 
           <View style={styles.cardDivider} />
 
           <View style={styles.cardFooter}>
             <View style={styles.badgeRow}>
-              <View style={[styles.badge, { backgroundColor: statusInfo.color + '15' }]}>
+              {/* Status Badge */}
+              <View style={[styles.badge, { backgroundColor: statusInfo.color + '18' }]}>
                 <Text style={[styles.badgeText, { color: statusInfo.color }]}>
                   {statusInfo.label}
                 </Text>
               </View>
-              <View style={[styles.badge, { backgroundColor: priorityInfo.color + '15' }]}>
-                <Text style={[styles.badgeText, { color: priorityInfo.color }]}>
-                  {priorityInfo.label} Priority
+              {/* Priority Badge */}
+              <View style={[styles.badge, { backgroundColor: priorityColor + '18' }]}>
+                <Text style={[styles.badgeText, { color: priorityColor }]}>
+                  {item.priority.level} ({item.priority.score})
                 </Text>
               </View>
+              {/* Reports Count Badge */}
+              {item.reportsCount > 1 ? (
+                <View style={[styles.badge, { backgroundColor: COLORS.info + '18' }]}>
+                  <Text style={[styles.badgeText, { color: COLORS.info }]}>
+                    {item.reportsCount} Reports
+                  </Text>
+                </View>
+              ) : null}
             </View>
-            <Text variant="bodySmall" style={styles.dateText}>{item.createdAt}</Text>
+            <Text variant="bodySmall" style={styles.dateText}>
+              {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent'}
+            </Text>
           </View>
         </Card.Content>
       </Card>
     );
   };
 
+  if (isLoading && !isRefetching) {
+    return <LoadingState message="Fetching your civic reports..." />;
+  }
+
+  if (isError) {
+    return (
+      <ErrorState
+        title="Failed to Load Reports"
+        message={error instanceof Error ? error.message : 'Unable to connect to service.'}
+        onRetry={refetch}
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* Filtering Selector */}
+      {/* Filter Tabs */}
       <View style={styles.filterSection}>
         <SegmentedButtons
           value={filter}
           onValueChange={setFilter}
           buttons={[
             { value: 'active', label: 'Active' },
-            { value: 'resolved', label: 'Resolved' },
-            { value: 'offline', label: 'Offline' },
+            { value: 'VERIFICATION_REQUIRED', label: 'Verify' },
+            { value: 'CLOSED', label: 'Closed' },
             { value: 'all', label: 'All' },
           ]}
           style={styles.segmentedButtons}
@@ -144,20 +155,28 @@ export default function MyReportsScreen() {
         />
       </View>
 
-      {/* List */}
+      {/* Reports List */}
       <FlatList
-        data={filteredIssues}
+        data={reports}
         keyExtractor={(item) => item.id}
-        renderItem={renderIssueCard}
+        renderItem={renderIncidentCard}
         contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Avatar.Icon size={64} icon="alert-outline" style={{ backgroundColor: 'transparent' }} color={COLORS.textSecondary} />
-            <Text variant="titleMedium" style={styles.emptyTitle}>No reports found</Text>
-            <Text variant="bodyMedium" style={styles.emptySub}>
-              Issues in this category will appear here.
-            </Text>
-          </View>
+          <EmptyState
+            icon="clipboard-text-outline"
+            title="No Incidents Found"
+            message={`There are no ${filter === 'all' ? '' : filter.toLowerCase()} reports to display at this time.`}
+            onAction={() => router.push('/issues/report' as any)}
+            actionText="Report New Incident"
+          />
         }
       />
     </View>
@@ -179,13 +198,15 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: THEME.padding.md,
+    flexGrow: 1,
   },
   card: {
-    marginBottom: THEME.padding.sm,
+    marginBottom: THEME.padding.md,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: THEME.roundness,
+    elevation: 1,
   },
   cardContent: {
     paddingHorizontal: THEME.padding.md,
@@ -205,6 +226,11 @@ const styles = StyleSheet.create({
   },
   locationText: {
     color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  descriptionText: {
+    color: COLORS.textSecondary,
+    marginTop: THEME.padding.xs,
   },
   cardDivider: {
     height: 1,
@@ -218,12 +244,13 @@ const styles = StyleSheet.create({
   },
   badgeRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
-    marginRight: 6,
   },
   badgeText: {
     fontSize: 11,
@@ -231,20 +258,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     color: COLORS.textSecondary,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: THEME.padding.xl * 2,
-  },
-  emptyTitle: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginTop: THEME.padding.sm,
-  },
-  emptySub: {
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: THEME.padding.xs,
+    fontSize: 12,
   },
 });
