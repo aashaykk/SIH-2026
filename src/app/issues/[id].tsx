@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getIncidentById } from '../../services/incidents.api';
 import { LoadingState } from '../../components/UI/LoadingState';
 import { ErrorState } from '../../components/UI/ErrorState';
+import { StatusTimeline } from '../../components/StatusTimeline';
 import { COLORS, THEME, CIVIC_CATEGORIES, ISSUE_STATUSES } from '../../config/constants';
 
 export default function IssueDetailsScreen() {
@@ -202,18 +203,10 @@ export default function IssueDetailsScreen() {
             </Card.Content>
           </Card>
 
-          {/* Placeholder for Status Timeline Component (Next Phase) */}
-          <Surface style={styles.timelinePlaceholder} elevation={0}>
-            <View style={styles.timelinePlaceholderHeader}>
-              <MaterialCommunityIcons name="timeline-text-outline" size={22} color={COLORS.primary} />
-              <Text variant="titleMedium" style={styles.timelinePlaceholderTitle}>
-                Incident Progress Timeline
-              </Text>
-            </View>
-            <Text variant="bodySmall" style={styles.timelinePlaceholderSub}>
-              [Visual Status Timeline Component will be rendered here in Phase 4]
-            </Text>
-          </Surface>
+          {/* Visual Status Timeline Component */}
+          {incident.timeline && incident.timeline.length > 0 ? (
+            <StatusTimeline timeline={incident.timeline} style={styles.timelineContainer} />
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -338,29 +331,8 @@ const styles = StyleSheet.create({
     marginVertical: THEME.padding.sm,
     backgroundColor: COLORS.border,
   },
-  timelinePlaceholder: {
-    padding: THEME.padding.md,
-    borderRadius: THEME.roundness,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.primary + '30',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: THEME.padding.sm,
-  },
-  timelinePlaceholderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  timelinePlaceholderTitle: {
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  timelinePlaceholderSub: {
-    color: COLORS.textSecondary,
-    marginTop: 4,
-    textAlign: 'center',
+  timelineContainer: {
+    marginTop: THEME.padding.sm,
+    marginBottom: THEME.padding.md,
   },
 });
