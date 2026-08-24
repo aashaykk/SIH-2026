@@ -11,67 +11,69 @@ export interface User {
   createdAt?: string;
 }
 
-export type IssueStatus = 
-  | 'SUBMITTED' 
-  | 'PENDING_SYNC' 
+export type IncidentStatus = 
+  | 'PROCESSING' 
   | 'ASSIGNED' 
   | 'IN_PROGRESS' 
-  | 'RESOLVED' 
-  | 'REOPENED' 
-  | 'CLOSED';
+  | 'RESOLUTION_SUBMITTED' 
+  | 'VERIFICATION_REQUIRED' 
+  | 'CLOSED' 
+  | 'REVIEW_REQUIRED' 
+  | 'REOPENED';
 
-export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export interface LocationCoordinate {
-  latitude: number;
-  longitude: number;
-  altitude?: number | null;
-  accuracy?: number | null;
-  timestamp?: number;
+export interface PriorityInfo {
+  score: number;
+  level: PriorityLevel;
 }
 
-export interface LocationInfo extends LocationCoordinate {
-  addressName?: string; // Human readable location details
+export interface TimelineStep {
+  label: string;
+  status: 'done' | 'active' | 'pending';
+  timestamp?: string;
 }
 
-export interface AIAnalysis {
-  category: string;
-  confidenceScore: number; // 0 to 1
-  detectedPriority: IssuePriority;
-  isDuplicate: boolean;
-  duplicateIssueId?: string | null;
-  rawAIResponse?: any;
+export interface Resolution {
+  beforeImage: string;
+  afterImage: string;
+  aiConfidence: number;
+  verificationStatus: 'verified' | 'low_confidence' | 'manual_review';
+  verificationReasons: string[];
+  citizenVerification?: 'YES' | 'PARTIAL' | 'NO';
 }
 
-export interface ResolutionVerification {
-  isVerified: boolean; // Citizen confirms resolution
-  citizenComments?: string;
-  afterImageUrl?: string;
-  verifiedAt?: string;
-  workerFeedback?: string;
-}
-
-export interface Issue {
+export interface Incident {
   id: string;
-  title: string;
-  description: string;
-  category: string; // matches CIVIC_CATEGORIES
-  priority: IssuePriority;
-  status: IssueStatus;
+  title?: string;
+  description?: string;
+  category: string;
+  status: IncidentStatus;
+  priority: PriorityInfo;
+  ward: string;
+  department: string;
+  reportsCount: number;
+  timeline: TimelineStep[];
+  resolution?: Resolution;
   imageUrl?: string;
-  voiceUrl?: string; // audio memo url
-  location: LocationInfo;
-  
-  // Timeline information
-  createdAt: string;
-  updatedAt: string;
-  
-  // Staff assignments
-  assignedDepartment?: string;
-  assignedOfficer?: string;
-  assignedWorker?: string;
-  
-  // Custom features
-  aiAnalysis?: AIAnalysis;
-  verification?: ResolutionVerification;
+  createdAt?: string;
+  updatedAt?: string;
+  slaDeadline?: string;
+  locationName?: string;
 }
+
+export interface CitizenNotification {
+  id: string;
+  incidentId?: string;
+  title: string;
+  message: string;
+  type: 'STATUS_UPDATE' | 'VERIFICATION_REQUEST' | 'GENERAL';
+  read: boolean;
+  createdAt: string;
+}
+
+// Backward compatibility alias for existing code
+export type IssueStatus = IncidentStatus;
+export type IssuePriority = PriorityLevel;
+export type Issue = Incident;
+
