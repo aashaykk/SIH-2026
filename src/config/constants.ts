@@ -57,14 +57,18 @@ export const CIVIC_CATEGORIES = [
   { id: 'encroachment', label: 'Public Encroachment', icon: 'home-alert-outline', color: '#8B5CF6' },
 ];
 
-export const ISSUE_STATUSES = {
-  SUBMITTED: { label: 'Submitted', color: '#3B82F6', icon: 'clock-outline' },
-  PENDING_SYNC: { label: 'Pending Sync', color: '#9CA3AF', icon: 'sync-alert' },
+export const ISSUE_STATUSES: Record<string, { label: string; color: string; icon: string }> = {
+  PROCESSING: { label: 'Processing', color: '#3B82F6', icon: 'cog-sync-outline' },
   ASSIGNED: { label: 'Assigned', color: '#8B5CF6', icon: 'account-check-outline' },
   IN_PROGRESS: { label: 'In Progress', color: '#F59E0B', icon: 'progress-wrench' },
-  RESOLVED: { label: 'Resolved', color: '#10B981', icon: 'check-circle-outline' },
+  RESOLUTION_SUBMITTED: { label: 'Resolution Submitted', color: '#06B6D4', icon: 'file-check-outline' },
+  VERIFICATION_REQUIRED: { label: 'Verification Needed', color: '#EC4899', icon: 'shield-alert-outline' },
+  CLOSED: { label: 'Closed', color: '#10B981', icon: 'check-circle-outline' },
+  REVIEW_REQUIRED: { label: 'Review Required', color: '#F97316', icon: 'alert-outline' },
   REOPENED: { label: 'Reopened', color: '#EF4444', icon: 'alert-circle-outline' },
-  CLOSED: { label: 'Closed', color: '#111827', icon: 'lock-outline' },
+  SUBMITTED: { label: 'Submitted', color: '#3B82F6', icon: 'clock-outline' },
+  PENDING_SYNC: { label: 'Pending Sync', color: '#9CA3AF', icon: 'sync-alert' },
+  RESOLVED: { label: 'Resolved', color: '#10B981', icon: 'check-circle-outline' },
 };
 
 export const ISSUE_PRIORITIES = {

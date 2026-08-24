@@ -1,0 +1,58 @@
+import { CitizenNotification } from '../types/models';
+
+export const MOCK_NOTIFICATIONS: CitizenNotification[] = [
+  {
+    id: 'NOTIF-001',
+    incidentId: 'INC-2026-002',
+    title: 'Verification Needed',
+    message: 'Worker submitted resolution for "Uncollected Garbage Pile outside Market". Please verify the fix.',
+    type: 'verification_required',
+    read: false,
+    createdAt: '2026-08-24T12:45:00Z',
+  },
+  {
+    id: 'NOTIF-002',
+    incidentId: 'INC-2026-002',
+    title: 'Resolution Submitted',
+    message: 'Field team submitted before/after photos with 94% AI verification confidence.',
+    type: 'resolution_submitted',
+    read: false,
+    createdAt: '2026-08-24T12:30:00Z',
+  },
+  {
+    id: 'NOTIF-003',
+    incidentId: 'INC-2026-001',
+    title: 'Worker Dispatched',
+    message: 'Field technician started work on "Large Pothole near Central Park Gate 2".',
+    type: 'worker_started',
+    read: true,
+    createdAt: '2026-08-24T10:00:00Z',
+  },
+  {
+    id: 'NOTIF-004',
+    incidentId: 'INC-2026-001',
+    title: 'Department Assigned',
+    message: 'Report assigned to Roads & Infrastructure department.',
+    type: 'report_assigned',
+    read: true,
+    createdAt: '2026-08-22T11:00:00Z',
+  },
+  {
+    id: 'NOTIF-005',
+    incidentId: 'INC-2026-003',
+    title: 'Issue Closed',
+    message: 'Incident #INC-2026-003 has been verified and officially closed.',
+    type: 'issue_closed',
+    read: true,
+    createdAt: '2026-08-21T16:00:00Z',
+  },
+  {
+    id: 'NOTIF-006',
+    incidentId: 'INC-2026-001',
+    title: 'Issue Reopened',
+    message: 'Incident #INC-2026-001 was reopened due to citizen feedback.',
+    type: 'issue_reopened',
+    read: true,
+    createdAt: '2026-08-19T09:00:00Z',
+  },
+];
