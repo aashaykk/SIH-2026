@@ -19,8 +19,6 @@ export async function markNotificationAsRead(id: string): Promise<CitizenNotific
   if (!notification) {
     throw new Error('Notification not found');
   }
-  return {
-    ...notification,
-    read: true,
-  };
+  notification.read = true;
+  return notification;
 }

@@ -62,12 +62,23 @@ export interface Incident {
   locationName?: string;
 }
 
+export type NotificationType = 
+  | 'report_assigned'
+  | 'worker_started'
+  | 'resolution_submitted'
+  | 'verification_required'
+  | 'issue_closed'
+  | 'issue_reopened'
+  | 'STATUS_UPDATE'
+  | 'VERIFICATION_REQUEST'
+  | 'GENERAL';
+
 export interface CitizenNotification {
   id: string;
   incidentId?: string;
   title: string;
   message: string;
-  type: 'STATUS_UPDATE' | 'VERIFICATION_REQUEST' | 'GENERAL';
+  type: NotificationType;
   read: boolean;
   createdAt: string;
 }
