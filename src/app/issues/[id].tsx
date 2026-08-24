@@ -148,6 +148,23 @@ export default function IssueDetailsScreen() {
             </Text>
           ) : null}
 
+          {/* Resolution Verification Banner (if verification needed or resolution present) */}
+          {incident.status === 'VERIFICATION_REQUIRED' || incident.resolution ? (
+            <Pressable onPress={() => router.push(`/issues/verify/${incident.id}` as any)}>
+              <Surface style={styles.verificationBanner} elevation={0}>
+                <MaterialCommunityIcons name="shield-check-outline" size={26} color="#EC4899" />
+                <View style={styles.verificationBannerText}>
+                  <Text variant="titleSmall" style={styles.verificationBannerTitle}>
+                    Resolution Proof Ready
+                  </Text>
+                  <Text variant="bodySmall" style={styles.verificationBannerSub}>
+                    View before/after photos and AI confidence analysis →
+                  </Text>
+                </View>
+              </Surface>
+            </Pressable>
+          ) : null}
+
           {/* Crowdsourced Reports Count Card */}
           <Surface style={styles.reportCountCard} elevation={0}>
             <MaterialCommunityIcons name="account-group-outline" size={24} color={COLORS.primary} />
@@ -334,5 +351,28 @@ const styles = StyleSheet.create({
   timelineContainer: {
     marginTop: THEME.padding.sm,
     marginBottom: THEME.padding.md,
+  },
+  verificationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: THEME.padding.md,
+    backgroundColor: '#FDF2F8', // Pink light tint
+    borderRadius: THEME.roundness,
+    borderWidth: 1,
+    borderColor: '#FBCFE8',
+    marginBottom: THEME.padding.md,
+  },
+  verificationBannerText: {
+    marginLeft: THEME.padding.md,
+    flex: 1,
+  },
+  verificationBannerTitle: {
+    fontWeight: 'bold',
+    color: '#BE185D',
+  },
+  verificationBannerSub: {
+    color: '#9D174D',
+    marginTop: 2,
+    fontSize: 12,
   },
 });
