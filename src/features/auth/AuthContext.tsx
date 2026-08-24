@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getSessionToken, getSessionProfile, saveSession, clearSession, UserProfile } from '../../storage/session';
+import { API_CONFIG } from '../../config/constants';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -7,7 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -41,22 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Prototype Mock Authentication Logic
-      // In production, you would call authService.loginUser(email, password)
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate api delay
-      
-      const mockToken = 'mock_jwt_token_for_' + email;
-      const mockProfile: UserProfile = {
-        id: '123',
-        name: 'Citizen Jane Doe',
-        email: email,
-        phone: '+91 9876543210',
-        role: 'citizen',
-      };
-      
-      await saveSession(mockToken, mockProfile);
-      setToken(mockToken);
-      setUser(mockProfile);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Login failed');
+      const profile = { ...payload.data.user, role: payload.data.user.role.toLowerCase() } as UserProfile;
+      await saveSession(payload.data.token, profile); setToken(payload.data.token); setUser(profile);
     } catch (e) {
       console.error(e);
       throw new Error('Invalid email or password');
@@ -65,23 +55,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string) => {
+  const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Mock registration delay
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      
-      const mockToken = 'mock_jwt_token_for_' + email;
-      const mockProfile: UserProfile = {
-        id: '124',
-        name: name,
-        email: email,
-        role: 'citizen',
-      };
-      
-      await saveSession(mockToken, mockProfile);
-      setToken(mockToken);
-      setUser(mockProfile);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password, role: 'CITIZEN' }) });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.message || 'Registration failed');
+      const profile = { ...payload.data.user, role: 'citizen' } as UserProfile;
+      await saveSession(payload.data.token, profile); setToken(payload.data.token); setUser(profile);
     } catch (e) {
       console.error(e);
       throw new Error('Registration failed');

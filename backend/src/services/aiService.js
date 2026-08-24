@@ -60,7 +60,7 @@ const analyzeIssue = async (imageFile, description, latitude, longitude) => {
         `Classification based on description text matching.`
       ],
       detectedFeatures: {},
-      source: 'MOCK_FALLBACK',
+        source: 'RULE_BASED_FALLBACK',
     };
   }
 };
@@ -125,16 +125,15 @@ const verifyResolution = async (beforeImageUrl, afterImageFile) => {
     console.warn(`[AI SERVICE WARNING] Resolution comparison failed (${error.message}). Executing Node fallback...`);
 
     return {
-      resolved: true, // Optimistic fallback during local development offline testing
-      confidence: 0.70,
-      locationMatch: true,
-      evidenceValid: true,
+      resolved: false,
+      confidence: 0,
+      locationMatch: null,
+      evidenceValid: false,
       reasons: [
-        'Python AI microservice offline. Self-checking comparisons bypassed.',
-        'Assumed valid resolution from field submission metadata.'
+        'Python AI microservice is unavailable; resolution cannot be AI-verified.',
       ],
       metrics: { ssim: 0.5, hist_similarity: 0.5 },
-      source: 'MOCK_FALLBACK'
+      source: 'UNVERIFIED_FALLBACK'
     };
   }
 };
@@ -144,8 +143,15 @@ const verifyResolution = async (beforeImageUrl, afterImageFile) => {
  */
 const getImageSimilarity = async (beforeImageUrl, afterImageFile) => {
   try {
-    const res = await verifyResolution(beforeImageUrl, afterImageFile);
-    return res.metrics ? res.metrics.hist_similarity : 0.0;
+    let relativePath = beforeImageUrl;
+    if (relativePath.startsWith('http')) relativePath = '/uploads/' + relativePath.split('/uploads/')[1];
+    const beforePath = path.join(__dirname, '../..', relativePath);
+    if (!fs.existsSync(beforePath) || !afterImageFile || !fs.existsSync(afterImageFile.path)) return 0;
+    const formData = new FormData();
+    formData.append('reference_image', new Blob([fs.readFileSync(beforePath)], { type: 'image/jpeg' }), 'reference.jpg');
+    formData.append('candidate_image', new Blob([fs.readFileSync(afterImageFile.path)], { type: afterImageFile.mimetype }), afterImageFile.originalname);
+    const response = await axios.post(`${AI_SERVICE_URL}/ai/image-similarity`, formData, { timeout: 12000 });
+    return response.data?.success ? Number(response.data.data.similarity || 0) : 0;
   } catch {
     return 0.0;
   }

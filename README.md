@@ -2,6 +2,34 @@
 
 NAGAR-X is a state-of-the-art mobile application prototype designed for **SIH 2026**. It empowers citizens to report civic grievances (potholes, garbage, water leaks, broken lights), automatically capture geo-coordinates, receive real-time AI-powered severity classifications, track progress timelines, and verify field resolutions.
 
+## Run the complete complaint pipeline
+
+The mobile app, Node API, PostgreSQL database, and AI service must all be running. The first AI request downloads the open-source CLIP weights, then image classification and image-embedding duplicate checks run locally.
+
+```bash
+# Terminal 1 – from backend/ (copy .env.example to .env and set DATABASE_URL)
+npm install
+npm start
+
+# Terminal 2 – from ai-service/
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 5000
+
+# Terminal 3 – repository root
+npm install
+npx expo start
+```
+
+Set `EXPO_PUBLIC_API_URL` to your computer's LAN address (for example,
+`http://192.168.1.8:3000/api`) before starting Expo when testing on a physical
+phone. Set `AI_SERVICE_URL` in `backend/.env` to the AI service address.
+
+The demo ward bounds in `backend/src/utils/dbInit.js` cover central Pune only.
+Load the municipality's approved ward/GIS boundary data into `wards` before a
+production deployment; every complaint is routed through that database table.
+
 ---
 
 ## 🛠️ Technology Stack
