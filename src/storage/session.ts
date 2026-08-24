@@ -1,13 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from './keys';
+import { UserRole } from '../types/models';
 
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
+  role: UserRole;
   phone?: string;
-  role: 'citizen' | 'officer' | 'worker';
 }
+
 
 /**
  * Save user session details

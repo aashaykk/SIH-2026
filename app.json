@@ -1,14 +1,18 @@
 {
   "expo": {
     "name": "SIH",
-    "slug": "SIH",
+    "slug": "sih-project",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sih",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.omkyasteam.sihproject",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -37,6 +41,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "11421ee6-7a88-4ed1-872f-8b69316a7553"
+      }
+    },
+    "owner": "omkyas-team"
   }
 }

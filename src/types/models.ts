@@ -1,77 +1,78 @@
 /**
  * Core Data Models & Schemas for NAGAR-X
+ * Aligned strictly with backend API contracts
  */
+
+export type UserRole = 'CITIZEN' | 'OFFICER' | 'ADMIN';
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  phone?: string;
-  role: 'citizen' | 'officer' | 'worker';
+  role: UserRole;
   createdAt?: string;
 }
 
 export type IssueStatus = 
-  | 'SUBMITTED' 
-  | 'PENDING_SYNC' 
-  | 'ASSIGNED' 
+  | 'REPORTED' 
+  | 'ACKNOWLEDGED' 
   | 'IN_PROGRESS' 
   | 'RESOLVED' 
-  | 'REOPENED' 
-  | 'CLOSED';
+  | 'VERIFIED' 
+  | 'REOPENED';
+
+export type IssueCategory = 
+  | 'ROAD_DAMAGE' 
+  | 'GARBAGE' 
+  | 'STREETLIGHT' 
+  | 'WATER_LEAKAGE' 
+  | 'OTHER';
 
 export type IssuePriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-
-export interface LocationCoordinate {
-  latitude: number;
-  longitude: number;
-  altitude?: number | null;
-  accuracy?: number | null;
-  timestamp?: number;
-}
-
-export interface LocationInfo extends LocationCoordinate {
-  addressName?: string; // Human readable location details
-}
-
-export interface AIAnalysis {
-  category: string;
-  confidenceScore: number; // 0 to 1
-  detectedPriority: IssuePriority;
-  isDuplicate: boolean;
-  duplicateIssueId?: string | null;
-  rawAIResponse?: any;
-}
-
-export interface ResolutionVerification {
-  isVerified: boolean; // Citizen confirms resolution
-  citizenComments?: string;
-  afterImageUrl?: string;
-  verifiedAt?: string;
-  workerFeedback?: string;
-}
+export type IssueSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type Department = 'ROADS' | 'SANITATION' | 'ELECTRICAL' | 'WATER' | 'GENERAL';
 
 export interface Issue {
   id: string;
   title: string;
   description: string;
-  category: string; // matches CIVIC_CATEGORIES
+  category: IssueCategory;
+  severity: IssueSeverity;
   priority: IssuePriority;
   status: IssueStatus;
-  imageUrl?: string;
-  voiceUrl?: string; // audio memo url
-  location: LocationInfo;
-  
-  // Timeline information
+  imageUrl?: string | null;
+  latitude: number;
+  longitude: number;
+  reportCount: number;
+  department?: Department | null;
+  assignedOfficer?: string | null;
+  aiConfidence?: number | null;
+  slaDeadline?: string | null;
   createdAt: string;
   updatedAt: string;
-  
-  // Staff assignments
-  assignedDepartment?: string;
-  assignedOfficer?: string;
-  assignedWorker?: string;
-  
-  // Custom features
-  aiAnalysis?: AIAnalysis;
-  verification?: ResolutionVerification;
 }
+
+// Authentication API contracts
+export interface AuthData {
+  token: string;
+  user: User;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+}
+

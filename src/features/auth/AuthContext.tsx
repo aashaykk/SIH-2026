@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getSessionToken, getSessionProfile, saveSession, clearSession, UserProfile } from '../../storage/session';
+import { authService } from '../../services/authService';
+import { UserRole } from '../../types/models';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -7,7 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string) => Promise<void>;
+  register: (name: string, email: string, password: string, role?: UserRole) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -18,73 +20,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check storage on mount
-  useEffect(() => {
-    async function bootstrapAsync() {
-      try {
-        const storedToken = await getSessionToken();
-        const storedProfile = await getSessionProfile();
-        
-        if (storedToken && storedProfile) {
-          setToken(storedToken);
-          setUser(storedProfile);
-        }
-      } catch (e) {
-        console.warn('Failed to load session from storage', e);
-      } finally {
-        setIsLoading(false);
+  // Restore saved session from AsyncStorage on app startup
+  const restoreSession = useCallback(async () => {
+    try {
+      const [storedToken, storedProfile] = await Promise.all([
+        getSessionToken(),
+        getSessionProfile(),
+      ]);
+
+      if (storedToken && storedProfile) {
+        setToken(storedToken);
+        setUser(storedProfile);
       }
+    } catch (e) {
+      console.warn('[AuthContext] Failed to load session from storage:', e);
+    } finally {
+      setIsLoading(false);
     }
-    bootstrapAsync();
   }, []);
+
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Prototype Mock Authentication Logic
-      // In production, you would call authService.loginUser(email, password)
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate api delay
+      const authData = await authService.login({ email, password });
       
-      const mockToken = 'mock_jwt_token_for_' + email;
-      const mockProfile: UserProfile = {
-        id: '123',
-        name: 'Citizen Jane Doe',
-        email: email,
-        phone: '+91 9876543210',
-        role: 'citizen',
+      const profile: UserProfile = {
+        id: authData.user.id,
+        name: authData.user.name,
+        email: authData.user.email,
+        role: authData.user.role,
       };
-      
-      await saveSession(mockToken, mockProfile);
-      setToken(mockToken);
-      setUser(mockProfile);
-    } catch (e) {
-      console.error(e);
-      throw new Error('Invalid email or password');
+
+      await saveSession(authData.token, profile);
+      setToken(authData.token);
+      setUser(profile);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || 'Login failed. Please check your credentials.';
+      console.error('[AuthContext] Login error:', errorMsg);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (name: string, email: string) => {
+  const register = async (name: string, email: string, password: string, role: UserRole = 'CITIZEN') => {
     setIsLoading(true);
     try {
-      // Mock registration delay
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      
-      const mockToken = 'mock_jwt_token_for_' + email;
-      const mockProfile: UserProfile = {
-        id: '124',
-        name: name,
-        email: email,
-        role: 'citizen',
+      const authData = await authService.register({ name, email, password, role });
+
+      const profile: UserProfile = {
+        id: authData.user.id,
+        name: authData.user.name,
+        email: authData.user.email,
+        role: authData.user.role,
       };
-      
-      await saveSession(mockToken, mockProfile);
-      setToken(mockToken);
-      setUser(mockProfile);
-    } catch (e) {
-      console.error(e);
-      throw new Error('Registration failed');
+
+      await saveSession(authData.token, profile);
+      setToken(authData.token);
+      setUser(profile);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.message || error.message || 'Registration failed. Please try again.';
+      console.error('[AuthContext] Registration error:', errorMsg);
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -96,8 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await clearSession();
       setToken(null);
       setUser(null);
-    } catch (e) {
-      console.error('Logout failed:', e);
+    } catch (error) {
+      console.error('[AuthContext] Logout error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -127,3 +128,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

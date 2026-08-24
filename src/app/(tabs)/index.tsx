@@ -1,121 +1,245 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, Button, Avatar, IconButton } from 'react-native-paper';
+import React, { useCallback } from 'react';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { Text, Card, Avatar, IconButton } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../features/auth/AuthContext';
+import { useIssuesQuery } from '../../hooks/useIssues';
+import { IssueCard } from '../../components/IssueCard';
+import { PrimaryButton } from '../../components/UI/PrimaryButton';
+import { LoadingState } from '../../components/UI/LoadingState';
+import { ErrorState } from '../../components/UI/ErrorState';
+import { EmptyState } from '../../components/UI/EmptyState';
 import { COLORS, THEME } from '../../config/constants';
+import { Issue } from '../../types/models';
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // Mock statistics data
-  const stats = {
-    total: 4,
-    resolved: 2,
-    pending: 1,
-    offline: 0,
+  // Fetch live civic issues via React Query
+  const { data: issues = [], isLoading, isError, refetch, isRefetching } = useIssuesQuery();
+
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  // Compute greeting dynamically
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   };
 
+  // Separate into Active Reports and Recently Resolved
+  const activeReports = issues.filter(
+    (issue) => issue.status !== 'RESOLVED' && issue.status !== 'VERIFIED'
+  );
+
+  const resolvedReports = issues.filter(
+    (issue) => issue.status === 'RESOLVED' || issue.status === 'VERIFIED'
+  );
+
+  const handleIssuePress = (issue: Issue) => {
+    router.push(`/issues/${issue.id}` as any);
+  };
+
+  const handleReportPress = () => {
+    router.push('/issues/report' as any);
+  };
+
+  const handleProfilePress = () => {
+    router.push('/(tabs)/profile' as any);
+  };
+
+  // Initial loading state
+  if (isLoading && !isRefetching) {
+    return <LoadingState message="Loading your civic dashboard..." fullScreen />;
+  }
+
+  // Error state
+  if (isError && !isRefetching && issues.length === 0) {
+    return (
+      <ErrorState
+        title="Unable to load civic issues"
+        message="Could not reach the server. Please check your network connection."
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      {/* Citizen Welcome Card */}
-      <View style={styles.welcomeSection}>
-        <View style={styles.avatarRow}>
-          <Avatar.Text 
-            size={48} 
-            label={user?.name ? user.name.split(' ').map(n => n[0]).join('') : 'C'} 
-            style={{ backgroundColor: COLORS.primary }}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefetching}
+          onRefresh={onRefresh}
+          colors={[COLORS.primary]}
+          tintColor={COLORS.primary}
+        />
+      }
+    >
+      {/* 1. Header: Greeting, User Profile, Notifications */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.userProfileRow} onPress={handleProfilePress}>
+          <Avatar.Text
+            size={46}
+            label={user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'C'}
+            style={styles.avatar}
           />
-          <View style={styles.welcomeTextContainer}>
-            <Text variant="bodyMedium" style={styles.welcomeLabel}>Welcome back,</Text>
-            <Text variant="titleLarge" style={styles.userName}>{user?.name || 'Citizen'}</Text>
+          <View style={styles.welcomeTextGroup}>
+            <Text variant="bodySmall" style={styles.greetingText}>
+              {getGreeting()},
+            </Text>
+            <Text variant="titleMedium" style={styles.userName} numberOfLines={1}>
+              {user?.name || 'Citizen'}
+            </Text>
           </View>
-          <IconButton 
-            icon="bell-outline" 
+        </TouchableOpacity>
+
+        <View style={styles.headerActions}>
+          <IconButton
+            icon="bell-outline"
             iconColor={COLORS.textSecondary}
-            onPress={() => console.log('Notifications')}
+            size={22}
+            onPress={() => {}}
+            style={styles.iconBtn}
+          />
+          <IconButton
+            icon="cog-outline"
+            iconColor={COLORS.textSecondary}
+            size={22}
+            onPress={handleProfilePress}
+            style={styles.iconBtn}
           />
         </View>
       </View>
 
-      {/* Main Call to Action (Report Issue Button) */}
+      {/* 2. Primary CTA: Report Issue */}
       <Card style={styles.reportCtaCard} mode="contained">
         <Card.Content style={styles.ctaContent}>
-          <View style={styles.ctaTextContainer}>
-            <Text variant="titleLarge" style={styles.ctaTitle}>Spotted a Civic Issue?</Text>
-            <Text variant="bodyMedium" style={styles.ctaSubtitle}>
-              Report potholes, garbage, or broken lights. AI will analyze and route it.
-            </Text>
-          </View>
-          <Button
-            mode="contained"
-            onPress={() => router.push('/issues/report' as any)}
-            style={styles.ctaButton}
-            labelStyle={styles.ctaButtonLabel}
-            icon="plus-circle"
-          >
-            Report Now
-          </Button>
-        </Card.Content>
-      </Card>
-
-      {/* Statistics Section */}
-      <Text variant="titleMedium" style={styles.sectionHeader}>Your Report Statistics</Text>
-      <View style={styles.statsGrid}>
-        <Card style={[styles.statCard, { borderLeftColor: COLORS.info }]} mode="outlined">
-          <Card.Content style={styles.statContent}>
-            <Text variant="labelMedium" style={styles.statLabel}>Total Filed</Text>
-            <Text variant="headlineMedium" style={[styles.statValue, { color: COLORS.info }]}>
-              {stats.total}
-            </Text>
-          </Card.Content>
-        </Card>
-
-        <Card style={[styles.statCard, { borderLeftColor: COLORS.success }]} mode="outlined">
-          <Card.Content style={styles.statContent}>
-            <Text variant="labelMedium" style={styles.statLabel}>Resolved</Text>
-            <Text variant="headlineMedium" style={[styles.statValue, { color: COLORS.success }]}>
-              {stats.resolved}
-            </Text>
-          </Card.Content>
-        </Card>
-
-        <Card style={[styles.statCard, { borderLeftColor: COLORS.warning }]} mode="outlined">
-          <Card.Content style={styles.statContent}>
-            <Text variant="labelMedium" style={styles.statLabel}>In Progress</Text>
-            <Text variant="headlineMedium" style={[styles.statValue, { color: COLORS.warning }]}>
-              {stats.pending}
-            </Text>
-          </Card.Content>
-        </Card>
-
-        <Card style={[styles.statCard, { borderLeftColor: COLORS.textSecondary }]} mode="outlined">
-          <Card.Content style={styles.statContent}>
-            <Text variant="labelMedium" style={styles.statLabel}>Pending Sync</Text>
-            <Text variant="headlineMedium" style={[styles.statValue, { color: COLORS.textSecondary }]}>
-              {stats.offline}
-            </Text>
-          </Card.Content>
-        </Card>
-      </View>
-
-      {/* General Broadcast/Alert Section */}
-      <Text variant="titleMedium" style={styles.sectionHeader}>Community Broadcasts</Text>
-      <Card style={styles.broadcastCard} mode="contained">
-        <Card.Content>
-          <View style={styles.broadcastHeader}>
-            <IconButton icon="bullhorn-outline" iconColor={COLORS.primary} size={24} style={styles.broadcastIcon} />
-            <View style={styles.broadcastTitleContainer}>
-              <Text variant="titleSmall" style={styles.broadcastTitle}>Cleanliness Drive: Ward 12</Text>
-              <Text variant="bodySmall" style={styles.broadcastMeta}>Posted 2 hours ago by Municipal Corp</Text>
+          <View style={styles.ctaHeaderRow}>
+            <View style={styles.ctaIconContainer}>
+              <MaterialCommunityIcons name="bullhorn-variant" size={26} color={COLORS.primary} />
+            </View>
+            <View style={styles.ctaTextGroup}>
+              <Text variant="titleMedium" style={styles.ctaTitle}>
+                Report a Civic Issue
+              </Text>
+              <Text variant="bodySmall" style={styles.ctaSubtitle}>
+                Spot a pothole, garbage, or broken light? Report it instantly.
+              </Text>
             </View>
           </View>
-          <Text variant="bodyMedium" style={styles.broadcastBody}>
-            The monthly community waste clearing and segregation drive is scheduled for this Sunday at 8:00 AM. Location: Town Hall park. Participation is highly appreciated.
-          </Text>
+
+          <PrimaryButton
+            onPress={handleReportPress}
+            icon="camera-plus"
+            style={styles.reportButton}
+          >
+            REPORT ISSUE
+          </PrimaryButton>
         </Card.Content>
       </Card>
+
+      {/* Summary KPI Badges */}
+      <View style={styles.metricsRow}>
+        <View style={[styles.metricCard, { borderLeftColor: COLORS.info }]}>
+          <Text variant="headlineSmall" style={[styles.metricNumber, { color: COLORS.info }]}>
+            {activeReports.length}
+          </Text>
+          <Text variant="labelSmall" style={styles.metricLabel}>
+            Active Reports
+          </Text>
+        </View>
+
+        <View style={[styles.metricCard, { borderLeftColor: COLORS.success }]}>
+          <Text variant="headlineSmall" style={[styles.metricNumber, { color: COLORS.success }]}>
+            {resolvedReports.length}
+          </Text>
+          <Text variant="labelSmall" style={styles.metricLabel}>
+            Resolved
+          </Text>
+        </View>
+
+        <View style={[styles.metricCard, { borderLeftColor: COLORS.primary }]}>
+          <Text variant="headlineSmall" style={[styles.metricNumber, { color: COLORS.primary }]}>
+            {issues.length}
+          </Text>
+          <Text variant="labelSmall" style={styles.metricLabel}>
+            Total Issues
+          </Text>
+        </View>
+      </View>
+
+      {/* 3. Section: Active Reports */}
+      <View style={styles.sectionHeaderRow}>
+        <View style={styles.sectionTitleGroup}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Active Reports
+          </Text>
+          <View style={styles.countPill}>
+            <Text style={styles.countText}>{activeReports.length}</Text>
+          </View>
+        </View>
+      </View>
+
+      {activeReports.length > 0 ? (
+        activeReports.map((issue) => (
+          <IssueCard
+            key={issue.id}
+            issue={issue}
+            onPress={handleIssuePress}
+          />
+        ))
+      ) : (
+        <EmptyState
+          icon="check-circle-outline"
+          title="No Active Issues"
+          message="There are currently no open or unresolved reports in your area."
+          actionText="Report Issue"
+          onAction={handleReportPress}
+        />
+      )}
+
+      {/* 4. Section: Recently Resolved */}
+      <View style={[styles.sectionHeaderRow, styles.resolvedSectionHeader]}>
+        <View style={styles.sectionTitleGroup}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Recently Resolved
+          </Text>
+          <View style={[styles.countPill, { backgroundColor: COLORS.success + '15' }]}>
+            <Text style={[styles.countText, { color: COLORS.success }]}>
+              {resolvedReports.length}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {resolvedReports.length > 0 ? (
+        resolvedReports.map((issue) => (
+          <IssueCard
+            key={issue.id}
+            issue={issue}
+            onPress={handleIssuePress}
+          />
+        ))
+      ) : (
+        <View style={styles.resolvedEmptyCard}>
+          <MaterialCommunityIcons
+            name="history"
+            size={32}
+            color={COLORS.textSecondary}
+            style={{ opacity: 0.6 }}
+          />
+          <Text variant="bodySmall" style={styles.resolvedEmptyText}>
+            Resolved civic reports will appear here once verified.
+          </Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -127,110 +251,152 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: THEME.padding.md,
+    paddingBottom: THEME.padding.xl * 2,
   },
-  welcomeSection: {
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: THEME.padding.md,
   },
-  avatarRow: {
+  userProfileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  welcomeTextContainer: {
     flex: 1,
-    marginLeft: THEME.padding.sm,
   },
-  welcomeLabel: {
+  avatar: {
+    backgroundColor: COLORS.primary,
+  },
+  welcomeTextGroup: {
+    marginLeft: THEME.padding.sm,
+    flex: 1,
+  },
+  greetingText: {
     color: COLORS.textSecondary,
-    fontSize: 14,
+    fontSize: 12,
   },
   userName: {
     fontWeight: 'bold',
     color: COLORS.text,
   },
+  headerActions: {
+    flexDirection: 'row',
+  },
+  iconBtn: {
+    margin: 0,
+  },
   reportCtaCard: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: COLORS.surface,
     borderRadius: THEME.roundness * 1.5,
-    marginBottom: THEME.padding.lg,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E0E7FF',
+    marginBottom: THEME.padding.md,
+    elevation: 3,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
   ctaContent: {
-    paddingVertical: THEME.padding.md,
+    padding: THEME.padding.md,
   },
-  ctaTextContainer: {
+  ctaHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: THEME.padding.md,
+  },
+  ctaIconContainer: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: COLORS.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: THEME.padding.sm,
+  },
+  ctaTextGroup: {
+    flex: 1,
   },
   ctaTitle: {
     fontWeight: 'bold',
-    color: COLORS.primaryDark,
+    color: COLORS.text,
   },
   ctaSubtitle: {
-    color: '#4338CA',
-    marginTop: THEME.padding.xs,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+    lineHeight: 16,
   },
-  ctaButton: {
-    backgroundColor: COLORS.primary,
+  reportButton: {
     borderRadius: THEME.roundness,
   },
-  ctaButtonLabel: {
-    fontWeight: 'bold',
-  },
-  sectionHeader: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginBottom: THEME.padding.sm,
-  },
-  statsGrid: {
+  metricsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: THEME.padding.lg,
+    gap: 8,
   },
-  statCard: {
-    width: '48%',
+  metricCard: {
+    flex: 1,
     backgroundColor: COLORS.surface,
-    marginBottom: THEME.padding.sm,
-    borderRadius: THEME.roundness,
-    borderLeftWidth: 4,
-  },
-  statContent: {
     padding: THEME.padding.sm,
+    borderRadius: THEME.roundness,
+    borderLeftWidth: 3.5,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
   },
-  statLabel: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-  },
-  statValue: {
+  metricNumber: {
     fontWeight: 'bold',
+    lineHeight: 28,
+  },
+  metricLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: THEME.padding.sm,
     marginTop: THEME.padding.xs,
   },
-  broadcastCard: {
+  resolvedSectionHeader: {
+    marginTop: THEME.padding.lg,
+  },
+  sectionTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  countPill: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+  },
+  resolvedEmptyCard: {
     backgroundColor: COLORS.surface,
     borderRadius: THEME.roundness,
     borderWidth: 1,
     borderColor: COLORS.border,
-  },
-  broadcastHeader: {
-    flexDirection: 'row',
+    padding: THEME.padding.lg,
     alignItems: 'center',
-    marginBottom: THEME.padding.xs,
-    marginLeft: -8,
+    justifyContent: 'center',
+    gap: 6,
   },
-  broadcastIcon: {
-    margin: 0,
-  },
-  broadcastTitleContainer: {
-    flex: 1,
-  },
-  broadcastTitle: {
-    fontWeight: 'bold',
-  },
-  broadcastMeta: {
+  resolvedEmptyText: {
     color: COLORS.textSecondary,
-  },
-  broadcastBody: {
-    color: COLORS.text,
-    lineHeight: 20,
-    marginTop: THEME.padding.xs,
+    textAlign: 'center',
   },
 });

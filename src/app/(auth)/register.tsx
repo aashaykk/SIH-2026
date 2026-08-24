@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { TextInput, Text, HelperText, SegmentedButtons } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../features/auth/AuthContext';
+import { PrimaryButton } from '../../components/UI/PrimaryButton';
 import { COLORS, THEME } from '../../config/constants';
+import { UserRole } from '../../types/models';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('CITIZEN');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,31 +22,35 @@ export default function RegisterScreen() {
   const router = useRouter();
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      setErrorMsg('Please fill in all fields');
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName || !trimmedEmail || !password || !confirmPassword) {
+      setErrorMsg('Please fill in all required fields.');
       return;
     }
 
     const emailRegex = /\S+@\S+\.\S+/;
-    if (!emailRegex.test(email)) {
-      setErrorMsg('Please enter a valid email address');
+    if (!emailRegex.test(trimmedEmail)) {
+      setErrorMsg('Please enter a valid email address.');
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters long');
+      setErrorMsg('Password must be at least 6 characters long.');
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg('Passwords do not match');
+      setErrorMsg('Passwords do not match.');
       return;
     }
 
     setErrorMsg('');
     setLoading(true);
+
     try {
-      await register(name, email);
+      await register(trimmedName, trimmedEmail, password, role);
       router.replace('/(tabs)' as any);
     } catch (err: any) {
       setErrorMsg(err.message || 'Registration failed. Please try again.');
@@ -58,22 +65,51 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Header */}
           <View style={styles.headerContainer}>
+            <View style={styles.logoBadge}>
+              <Text style={styles.logoText}>NX</Text>
+            </View>
             <Text variant="headlineMedium" style={styles.title}>Create Account</Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
               Join NAGAR-X to report civic issues and verify resolutions
             </Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.formContainer}>
+          {/* Form Card */}
+          <View style={styles.card}>
+            <Text variant="titleLarge" style={styles.cardTitle}>Register</Text>
+            <Text variant="bodySmall" style={styles.cardSubtitle}>
+              Sign up for a municipal civic account
+            </Text>
+
             {errorMsg ? (
-              <HelperText type="error" visible={!!errorMsg} style={styles.errorText}>
-                {errorMsg}
-              </HelperText>
+              <View style={styles.errorContainer}>
+                <HelperText type="error" visible={!!errorMsg} style={styles.errorText}>
+                  {errorMsg}
+                </HelperText>
+              </View>
             ) : null}
+
+            {/* Role Selection */}
+            <View style={styles.roleSection}>
+              <Text variant="labelSmall" style={styles.roleLabel}>Account Type:</Text>
+              <SegmentedButtons
+                value={role}
+                onValueChange={(val) => setRole(val as UserRole)}
+                buttons={[
+                  { value: 'CITIZEN', label: 'Citizen' },
+                  { value: 'OFFICER', label: 'Officer' },
+                  { value: 'ADMIN', label: 'Admin' },
+                ]}
+                style={styles.segmentedButtons}
+                theme={{ colors: { secondaryContainer: COLORS.primaryLight } }}
+              />
+            </View>
 
             <TextInput
               label="Full Name"
@@ -81,7 +117,8 @@ export default function RegisterScreen() {
               onChangeText={(text) => { setName(text); setErrorMsg(''); }}
               mode="outlined"
               style={styles.input}
-              left={<TextInput.Icon icon="account-outline" />}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="account-outline" color={COLORS.textSecondary} />}
               activeOutlineColor={COLORS.primary}
             />
 
@@ -93,7 +130,8 @@ export default function RegisterScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               style={styles.input}
-              left={<TextInput.Icon icon="email-outline" />}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="email-outline" color={COLORS.textSecondary} />}
               activeOutlineColor={COLORS.primary}
             />
 
@@ -105,7 +143,8 @@ export default function RegisterScreen() {
               secureTextEntry={secureTextEntry}
               autoCapitalize="none"
               style={styles.input}
-              left={<TextInput.Icon icon="lock-outline" />}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="lock-outline" color={COLORS.textSecondary} />}
               activeOutlineColor={COLORS.primary}
             />
 
@@ -117,26 +156,26 @@ export default function RegisterScreen() {
               secureTextEntry={secureTextEntry}
               autoCapitalize="none"
               style={styles.input}
-              left={<TextInput.Icon icon="lock-check-outline" />}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="lock-check-outline" color={COLORS.textSecondary} />}
               right={
                 <TextInput.Icon 
                   icon={secureTextEntry ? "eye-outline" : "eye-off-outline"} 
                   onPress={() => setSecureTextEntry(!secureTextEntry)} 
+                  color={COLORS.textSecondary}
                 />
               }
               activeOutlineColor={COLORS.primary}
             />
 
-            <Button
-              mode="contained"
+            <PrimaryButton
               onPress={handleRegister}
               loading={loading}
               disabled={loading}
               style={styles.registerButton}
-              labelStyle={styles.buttonLabel}
             >
-              Sign Up
-            </Button>
+              Complete Registration
+            </PrimaryButton>
           </View>
 
           {/* Redirect to Login */}
@@ -144,13 +183,11 @@ export default function RegisterScreen() {
             <Text variant="bodyMedium" style={styles.footerText}>
               Already have an account?{' '}
             </Text>
-            <Text
-              variant="bodyMedium"
-              style={styles.linkText}
-              onPress={() => router.push('/(auth)/login')}
-            >
-              Sign In
-            </Text>
+            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+              <Text variant="bodyMedium" style={styles.linkText}>
+                Sign In
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -175,6 +212,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: THEME.padding.lg,
   },
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: THEME.padding.sm,
+    elevation: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  logoText: {
+    color: '#FFF',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
   title: {
     fontWeight: 'bold',
     color: COLORS.text,
@@ -183,36 +239,72 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: COLORS.textSecondary,
     marginTop: THEME.padding.xs,
-    paddingHorizontal: THEME.padding.sm,
+    paddingHorizontal: THEME.padding.md,
+    fontSize: 13,
   },
-  formContainer: {
-    width: '100%',
-    marginBottom: THEME.padding.lg,
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: THEME.roundness * 1.5,
+    padding: THEME.padding.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  cardTitle: {
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  cardSubtitle: {
+    color: COLORS.textSecondary,
+    marginBottom: THEME.padding.md,
+    marginTop: 2,
+  },
+  roleSection: {
+    marginBottom: THEME.padding.md,
+  },
+  roleLabel: {
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  segmentedButtons: {
+    backgroundColor: COLORS.surface,
+  },
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: THEME.roundness,
+    padding: THEME.padding.xs,
+    marginBottom: THEME.padding.sm,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 13,
+    margin: 0,
+    padding: 0,
   },
   input: {
     marginBottom: THEME.padding.sm,
     backgroundColor: COLORS.surface,
   },
-  registerButton: {
-    marginTop: THEME.padding.md,
-    paddingVertical: 6,
+  inputOutline: {
     borderRadius: THEME.roundness,
-    backgroundColor: COLORS.primary,
+    borderColor: COLORS.border,
   },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  errorText: {
-    textAlign: 'center',
-    fontSize: 14,
-    marginBottom: THEME.padding.sm,
+  registerButton: {
+    marginTop: THEME.padding.sm,
+    paddingVertical: 6,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: THEME.padding.md,
+    marginTop: THEME.padding.lg,
   },
   footerText: {
     color: COLORS.textSecondary,
@@ -222,3 +314,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+

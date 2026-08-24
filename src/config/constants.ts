@@ -1,7 +1,5 @@
-/**
- * NAGAR-X Design Tokens & Configuration Constants
- * Centralized theme colors, category options, and UI metrics.
- */
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 export const COLORS = {
   // Brand colors
@@ -49,22 +47,20 @@ export const THEME = {
 };
 
 export const CIVIC_CATEGORIES = [
-  { id: 'pothole', label: 'Pothole & Roads', icon: 'road-variant', color: '#6B7280' },
-  { id: 'garbage', label: 'Garbage & Waste', icon: 'trash-can-outline', color: '#10B981' },
-  { id: 'streetlight', label: 'Broken Streetlight', icon: 'lightbulb-outline', color: '#F59E0B' },
-  { id: 'water_leakage', label: 'Water Leakage', icon: 'water-pump', color: '#3B82F6' },
-  { id: 'sewage', label: 'Sewage Overflow', icon: 'pipe-leak', color: '#EF4444' },
-  { id: 'encroachment', label: 'Public Encroachment', icon: 'home-alert-outline', color: '#8B5CF6' },
+  { id: 'ROAD_DAMAGE', label: 'Road Damage & Potholes', icon: 'road-variant', color: '#6B7280' },
+  { id: 'GARBAGE', label: 'Garbage & Sanitation', icon: 'trash-can-outline', color: '#10B981' },
+  { id: 'STREETLIGHT', label: 'Streetlight & Electrical', icon: 'lightbulb-outline', color: '#F59E0B' },
+  { id: 'WATER_LEAKAGE', label: 'Water Leakage & Sewage', icon: 'water-pump', color: '#3B82F6' },
+  { id: 'OTHER', label: 'Other Civic Issues', icon: 'alert-circle-outline', color: '#8B5CF6' },
 ];
 
 export const ISSUE_STATUSES = {
-  SUBMITTED: { label: 'Submitted', color: '#3B82F6', icon: 'clock-outline' },
-  PENDING_SYNC: { label: 'Pending Sync', color: '#9CA3AF', icon: 'sync-alert' },
-  ASSIGNED: { label: 'Assigned', color: '#8B5CF6', icon: 'account-check-outline' },
+  REPORTED: { label: 'Reported', color: '#3B82F6', icon: 'clock-outline' },
+  ACKNOWLEDGED: { label: 'Acknowledged', color: '#8B5CF6', icon: 'account-check-outline' },
   IN_PROGRESS: { label: 'In Progress', color: '#F59E0B', icon: 'progress-wrench' },
   RESOLVED: { label: 'Resolved', color: '#10B981', icon: 'check-circle-outline' },
+  VERIFIED: { label: 'Verified', color: '#059669', icon: 'shield-check-outline' },
   REOPENED: { label: 'Reopened', color: '#EF4444', icon: 'alert-circle-outline' },
-  CLOSED: { label: 'Closed', color: '#111827', icon: 'lock-outline' },
 };
 
 export const ISSUE_PRIORITIES = {
@@ -74,7 +70,41 @@ export const ISSUE_PRIORITIES = {
   CRITICAL: { label: 'Critical', color: COLORS.severityCritical, score: 4 },
 };
 
-export const API_CONFIG = {
-  BASE_URL: 'http://172.20.10.3:3000/api', // Connects to the backend on OMEN PC
-  TIMEOUT: 10000,
+export const ROLES = {
+  CITIZEN: 'CITIZEN',
+  OFFICER: 'OFFICER',
+  ADMIN: 'ADMIN',
+} as const;
+
+// Determine API base URL dynamically so physical phones on Wi-Fi connect seamlessly
+const getApiBaseUrl = () => {
+  if (Platform.OS === 'ios' || Platform.OS === 'android') {
+    try {
+      // Extract host IP dynamically from Expo Metro connection
+      const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoGo?.debuggerHost;
+      if (hostUri) {
+        const ip = hostUri.split(':')[0];
+        // Ignore loopback and unreachable 192.0.0.x point-to-point interface
+        if (ip && !ip.startsWith('192.0.0.') && ip !== 'localhost' && ip !== '127.0.0.1') {
+          return `http://${ip}:3000/api`;
+        }
+      }
+    } catch (err) {
+      console.warn('[Constants] Could not read hostUri from Expo Constants:', err);
+    }
+
+    // Default to Mac Wi-Fi LAN IP
+    return 'http://192.168.0.109:3000/api';
+  }
+
+  return 'http://localhost:3000/api';
 };
+
+export const API_CONFIG = {
+  BASE_URL: getApiBaseUrl(),
+  TIMEOUT: 15000,
+};
+
+
+
+
