@@ -1,92 +1,154 @@
-# NAGAR-X — AI-Powered Civic Intelligence & Resolution Network
+# NAGAR-X Web Dashboard
+## Civic Command Center — Municipal Intelligence Dashboard
 
-NAGAR-X is a state-of-the-art mobile application prototype designed for **SIH 2026**. It empowers citizens to report civic grievances (potholes, garbage, water leaks, broken lights), automatically capture geo-coordinates, receive real-time AI-powered severity classifications, track progress timelines, and verify field resolutions.
-
----
-
-## 🛠️ Technology Stack
-
-* **Core**: React Native (via Expo SDK 54)
-* **Language**: TypeScript (v5.9.2)
-* **Navigation**: Expo Router (v6.0.24) — file-based routing
-* **UI Framework**: React Native Paper (Material Design v3) & Material Vector Icons
-* **Server State**: TanStack Query (React Query v5)
-* **Networking**: Axios Client with Interceptors
-* **Sensors**: Expo Location (GPS), Expo Camera & Image Picker (Media capture)
-* **Local Persistence**: AsyncStorage (Offline report queuing and session token caching)
+**SIH 2026 | Problem Statement #43 | Team Aperture | Bhavya (BK)**
 
 ---
 
-## 📂 Project Architecture
+## Quick Start
 
-The code resides inside the `/src` folder, organized modularly:
+```bash
+# 1. Install deps
+npm install
 
-```text
+# 2. Set env (copy and edit)
+cp .env.example .env
+
+# 3. Run in mock mode (no backend needed)
+VITE_USE_MOCK=true npm run dev
+
+# 4. Run connected to backend
+npm run dev
+
+# 5. Tests
+npm test
+npm run test:coverage
+```
+
+---
+
+## Architecture
+
+```
 src/
-├── app/                              # Expo Router Routes & Screen Files
-│   ├── (auth)/                       # Immersive Authentication Screens (Login, Register)
-│   ├── (tabs)/                       # Main Bottom-Tab Views (Home, My Reports, Profile)
-│   ├── issues/                       # Grievance Submission Flow (Report Form, Dynamic ID Details)
-│   └── _layout.tsx                   # App Entry point (Global Providers & Route Protection)
-├── components/                       # Shared Presentational UI components
-│   └── UI/                           # Custom primitives (PrimaryButton, LoadingState, ErrorState, EmptyState)
-├── config/                           # System Configuration
-│   ├── api.ts                        # Axios instances & interceptors
-│   └── constants.ts                  # Brand theme tokens, civic categories, status registry
-├── features/                         # Feature specific state & hooks
-│   └── auth/                         # Global user session context (AuthContext)
-├── storage/                          # Local AsyncStorage adapters
-│   ├── keys.ts                       # Persistent storage keys registry
-│   └── session.ts                    # Session reads/writes
-├── types/                            # Type definitions
-│   └── models.ts                     # TypeScript data model schemas
+├── types/index.ts          ← ALL TypeScript types (single source of truth)
+├── utils/index.ts          ← Pure utility functions (all tested)
+├── utils/mockData.ts       ← Demo data for dev/fallback
+├── services/
+│   ├── api.ts              ← Axios instance, JWT inject, error normalise
+│   ├── incidents.ts        ← Incident API calls (+ mock fallback)
+│   └── analytics.ts        ← Hotspot + ward analytics API
+├── hooks/
+│   ├── useSocket.ts        ← Socket.IO connection + typed event subscription
+│   ├── useIncidents.ts     ← TanStack Query wrappers for incidents
+│   └── useDashboard.ts     ← Ward stats, dept stats, hotspots
+├── components/
+│   ├── shared/             ← Reusable: badges, skeleton, error, empty states
+│   ├── dashboard/          ← KPI cards, AI activity feed, dept status
+│   ├── incidents/          ← Card, timeline, priority explainer, assign modal
+│   └── map/                ← Leaflet map with incident markers
+└── pages/
+    ├── Dashboard.tsx       ← Main command center
+    ├── Analytics.tsx       ← Hotspots + predictions
+    └── Login.tsx           ← Auth
 ```
 
 ---
 
-## 🚀 Setup & Execution
+## Environment Variables
 
-Follow these steps to run the application locally on your computer and phone:
-
-### 1. Install Dependencies
-This project uses peer dependencies compatible with React 19.1. Install dependencies using:
-```bash
-npm install --legacy-peer-deps
-```
-
-### 2. Start the Development Server
-```bash
-# Start server with clean bundler cache
-npx expo start -c
-```
-
-### 3. Open on Your Phone
-* Download **Expo Go** on your device (Supports **SDK 54**).
-* Connect your computer and mobile phone to the **same Wi-Fi network**.
-* Scan the QR code displayed in the terminal.
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:5000` | Backend base URL |
+| `VITE_SOCKET_URL` | `http://localhost:5000` | Socket.IO URL |
+| `VITE_USE_MOCK` | `false` | Use mock data instead of real API |
+| `VITE_DEFAULT_LAT` | `23.2156` | Map default center (Gandhinagar) |
+| `VITE_DEFAULT_LNG` | `72.6369` | Map default center |
+| `VITE_DEFAULT_ZOOM` | `13` | Default map zoom |
 
 ---
 
-## 🔒 Session & Route Protection
+## API Contract
 
-The routing is governed globally inside `src/app/_layout.tsx` using a **Global Navigation Guard**:
-* Unauthenticated users are automatically forced to `/(auth)/login`.
-* Authenticated users are automatically transitioned to the `/(tabs)` dashboard.
-* Logouts clear AsyncStorage session headers and immediately trigger redirect guards.
+The dashboard consumes these backend endpoints:
+
+```
+GET  /api/incidents              ?status=&priority=&departmentId=&page=&sortBy=
+GET  /api/incidents/:id
+GET  /api/incidents/:id/timeline
+POST /api/incidents/:id/assign   body: { workerId }
+PATCH /api/incidents/:id/status  body: { status }
+GET  /api/wards/:id/dashboard
+GET  /api/analytics/departments
+GET  /api/analytics/hotspots     ?wardId=
+GET  /api/departments/:id/workers ?available=true
+POST /api/auth/login             body: { email, password }
+GET  /api/auth/me
+```
+
+### Response: Incident
+```json
+{
+  "id": "INC-1042",
+  "title": "Garbage Accumulation Near Market",
+  "category": "GARBAGE",
+  "status": "ASSIGNED",
+  "priority": "HIGH",
+  "priorityScore": 87,
+  "priorityReasons": ["8 citizens reported", "Unresolved 18h"],
+  "latitude": 23.2078, "longitude": 72.6397,
+  "wardName": "Ward 17",
+  "departmentName": "SANITATION",
+  "reportCount": 8,
+  "civicSignalStrength": 91,
+  "slaDeadline": "2025-01-01T10:00:00Z",
+  "slaStatus": "YELLOW",
+  "slaRemainingMs": 14400000,
+  "slaTotalMs": 86400000,
+  "aiConfidence": 0.96
+}
+```
+
+### Socket.IO Events (backend → dashboard)
+```
+incident.created          { incident: Incident }
+incident.status_changed   { incidentId, status, previousStatus }
+incident.assigned         { incidentId, workerName }
+incident.escalated        { incidentId, escalationLevel, reason }
+ai.activity               { id, timestamp, agent, message, type, incidentId }
+```
 
 ---
 
-## 💻 Developer Collaboration Guidelines (Git Rules)
+## Failure Scenarios Handled
 
-For a clean developer workflow, adhere to these practices:
+| Scenario | Behaviour |
+|---|---|
+| Backend down | Mock mode (`VITE_USE_MOCK=true`) or `ErrorState` component with retry |
+| Socket.IO disconnected | `ConnectionIndicator` shows Offline; queries still work via REST |
+| JWT expired | Auto-redirect to `/login` |
+| No incidents match filter | `EmptyState` component |
+| No available workers | Modal shows guidance message |
+| Map tile server unreachable | Leaflet degrades gracefully (grey tiles) |
+| AI confidence < 50% | System routes to manual review (handled by backend) |
 
-1. **Branch Naming Standard**:
-   * Features: `feat/[developer-initials]-[feature-name]` (e.g., `feat/ad-location-picker`)
-   * Bugfixes: `bug/[developer-initials]-[bug-name]` (e.g., `bug/ak-session-fix`)
-2. **Commit Style**: Prefix commit messages cleanly:
-   * `feat: add camera capture permission handler`
-   * `fix: correct stylesheet border syntax in profile page`
-3. **Collaboration Etiquette**:
-   * Never commit directly to the `main` branch.
-   * Push changes to `origin [your-feature-branch]`, compile locally using `npx tsc --noEmit` to ensure there are no compilation errors, and submit a Pull Request to `dev`.
-   * Clear your local cache using `npx expo start -c` if you run into local bundler issues.
+---
+
+## Integration Checklist (for Aashay/Shreya backend)
+
+- [ ] `GET /api/incidents` returns `PaginatedResponse<Incident>` shape
+- [ ] All `Incident` fields present (especially `priorityReasons[]`, `civicSignalStrength`, `slaRemainingMs`)
+- [ ] `POST /api/auth/login` returns `{ token: string, user: User }`
+- [ ] Socket.IO emits `ai.activity` events during processing pipeline
+- [ ] Socket.IO emits `incident.created` when new incident created
+- [ ] CORS configured for `http://localhost:3000`
+
+---
+
+## Demo Credentials
+
+| Role | Email | Password |
+|---|---|---|
+| Ward Authority | ward17@nagarx.demo | demo1234 |
+| City Admin | admin@nagarx.demo | demo1234 |
+| Supervisor | supervisor@nagarx.demo | demo1234 |

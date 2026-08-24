@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-surface text-slate-100 font-display antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-500;
+  }
+}
+
+@layer components {
+  /* Leaflet map dark override */
+  .leaflet-container {
+    @apply bg-surface-card;
+    font-family: inherit;
+  }
+  .leaflet-tile {
+    filter: brightness(0.7) saturate(0.8);
+  }
+  .leaflet-popup-content-wrapper {
+    @apply bg-surface-card border border-surface-border text-slate-100;
+    border-radius: 8px;
+  }
+  .leaflet-popup-tip {
+    @apply bg-surface-card;
+  }
+}
+
+/* SLA countdown animation */
+@keyframes sla-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.sla-critical {
+  animation: sla-pulse 1s ease-in-out infinite;
+}
