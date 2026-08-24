@@ -62,20 +62,25 @@ const createIssue = async (req, res) => {
     const activeSameCategoryIssues = await issueModel.findActiveByCategory(category);
 
     // 3. Perform duplicate search
-    const duplicate = duplicateService.findDuplicate(
+    const duplicate = await duplicateService.findDuplicate(
       activeSameCategoryIssues,
-      latitude,
-      longitude
+      {
+        latitude,
+        longitude,
+        category,
+        imageFile: req.file,
+        createdAt: new Date()
+      }
     );
 
     if (duplicate) {
       console.log(`Matching duplicate issue found for category ${category}. ID: ${duplicate.id}`);
-      
+
       const newReportCount = duplicate.reportCount + 1;
-      
+
       // Recalculate priority based on new report count and severity
       const escalatedPriority = priorityService.calculatePriority(duplicate.severity, newReportCount);
-      
+
       // Update existing issue
       const updatedIssue = await issueModel.incrementReportCountAndRecalculatePriority(
         duplicate.id,
@@ -91,8 +96,8 @@ const createIssue = async (req, res) => {
     }
 
     // 4. Otherwise, route department, calculate SLA, and create master issue
-    const department = routingService.routeToDepartment(category);
-    const slaDeadline = slaService.calculateSlaDeadline(category, new Date());
+    const department = await routingService.routeToDepartment(category);
+    const slaDeadline = await slaService.calculateSlaDeadline(category, new Date());
     const basePriority = priorityService.calculatePriority(severity, 1);
 
     const title = `${category.replace('_', ' ')} Incident`;
@@ -114,7 +119,7 @@ const createIssue = async (req, res) => {
     });
 
     console.log(`New issue successfully created: ${newIssue.id}`);
-    
+
     return res.status(201).json({
       success: true,
       data: formatIssueResponse(req, newIssue),
@@ -131,7 +136,7 @@ const createIssue = async (req, res) => {
 const getIssues = async (req, res) => {
   try {
     const { status, category, assignedOfficer, department } = req.query;
-    
+
     const issues = await issueModel.findAll({
       status,
       category,
@@ -210,7 +215,7 @@ const updateStatus = async (req, res) => {
     // Validate status transitions
     const currentStatus = issue.status;
     const allowed = VALID_TRANSITIONS[currentStatus];
-    
+
     if (!allowed || !allowed.includes(targetStatus)) {
       return res.status(400).json({
         success: false,
