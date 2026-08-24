@@ -4,6 +4,7 @@ const duplicateService = require('../services/duplicateService');
 const priorityService = require('../services/priorityService');
 const routingService = require('../services/routingService');
 const slaService = require('../services/slaService');
+const wardService = require('../services/wardService');
 
 const VALID_STATUSES = ['REPORTED', 'ACKNOWLEDGED', 'IN_PROGRESS', 'RESOLVED', 'VERIFIED', 'REOPENED'];
 
@@ -32,7 +33,7 @@ const createIssue = async (req, res) => {
   try {
     const { description, latitude, longitude } = req.body;
 
-    if (!description || !latitude || !longitude) {
+    if (!description || latitude === undefined || longitude === undefined) {
       return res.status(400).json({
         success: false,
         message: 'Description, latitude, and longitude are required',
@@ -62,38 +63,47 @@ const createIssue = async (req, res) => {
     const activeSameCategoryIssues = await issueModel.findActiveByCategory(category);
 
     // 3. Perform duplicate search
-    const duplicate = duplicateService.findDuplicate(
+    const duplicate = await duplicateService.findDuplicate(
       activeSameCategoryIssues,
-      latitude,
-      longitude
+      {
+        latitude,
+        longitude,
+        category,
+        imageFile: req.file,
+        createdAt: new Date()
+      }
     );
 
     if (duplicate) {
-      console.log(`Matching duplicate issue found for category ${category}. ID: ${duplicate.id}`);
-      
-      const newReportCount = duplicate.reportCount + 1;
-      
+      const masterIssue = await issueModel.findById(duplicate.matchedIncidentId);
+      if (!masterIssue) throw new Error('Duplicate master incident no longer exists');
+      console.log(`Matching duplicate issue found for category ${category}. ID: ${masterIssue.id}`);
+
+      const newReportCount = masterIssue.reportCount + 1;
+
       // Recalculate priority based on new report count and severity
-      const escalatedPriority = priorityService.calculatePriority(duplicate.severity, newReportCount);
-      
+      const priorityDetails = priorityService.calculatePriorityDetails(masterIssue.severity, newReportCount);
+
       // Update existing issue
       const updatedIssue = await issueModel.incrementReportCountAndRecalculatePriority(
-        duplicate.id,
+        masterIssue.id,
         newReportCount,
-        escalatedPriority
+        priorityDetails
       );
 
       return res.status(200).json({
         success: true,
         message: 'Duplicate issue detected. Report count incremented.',
         data: formatIssueResponse(req, updatedIssue),
+        duplicate: { matchedIncidentId: masterIssue.id, score: duplicate.duplicateScore, metrics: duplicate.metrics },
       });
     }
 
     // 4. Otherwise, route department, calculate SLA, and create master issue
-    const department = routingService.routeToDepartment(category);
-    const slaDeadline = slaService.calculateSlaDeadline(category, new Date());
-    const basePriority = priorityService.calculatePriority(severity, 1);
+    const department = aiResult.department || await routingService.routeToDepartment(category);
+    const ward = await wardService.findWardForLocation(latitude, longitude);
+    const slaDeadline = await slaService.calculateSlaDeadline(category, new Date());
+    const priorityDetails = priorityService.calculatePriorityDetails(severity, 1);
 
     const title = `${category.replace('_', ' ')} Incident`;
 
@@ -102,7 +112,7 @@ const createIssue = async (req, res) => {
       description,
       category,
       severity,
-      priority: basePriority,
+      priority: priorityDetails.priority,
       status: 'REPORTED',
       imageUrl: relativeImageUrl,
       latitude,
@@ -111,10 +121,16 @@ const createIssue = async (req, res) => {
       department,
       aiConfidence: confidence,
       slaDeadline,
+      wardId: ward?.id,
+      nagarsevakId: ward?.nagarsevak_id,
+      civicSignalScore: 2.5,
+      priorityScore: priorityDetails.priorityScore,
+      priorityReasons: priorityDetails.reasons,
+      aiReasons: aiResult.reasons,
     });
 
     console.log(`New issue successfully created: ${newIssue.id}`);
-    
+
     return res.status(201).json({
       success: true,
       data: formatIssueResponse(req, newIssue),
@@ -130,13 +146,14 @@ const createIssue = async (req, res) => {
 
 const getIssues = async (req, res) => {
   try {
-    const { status, category, assignedOfficer, department } = req.query;
-    
+    const { status, category, assignedOfficer, department, nagarsevakId } = req.query;
+
     const issues = await issueModel.findAll({
       status,
       category,
       assignedOfficer,
       department,
+      nagarsevakId: nagarsevakId || (req.user.role === 'OFFICER' ? req.user.id : undefined),
     });
 
     const formattedIssues = issues.map(issue => formatIssueResponse(req, issue));
@@ -210,7 +227,7 @@ const updateStatus = async (req, res) => {
     // Validate status transitions
     const currentStatus = issue.status;
     const allowed = VALID_TRANSITIONS[currentStatus];
-    
+
     if (!allowed || !allowed.includes(targetStatus)) {
       return res.status(400).json({
         success: false,
