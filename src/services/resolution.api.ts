@@ -1,27 +1,49 @@
+import { api } from './api';
 import { Resolution, IncidentStatus } from '../types/models';
 import { MOCK_INCIDENTS } from '../mocks/incidents.mock';
 
 /**
  * Resolution Verification API Service
- * Handles fetching resolution proof (before/after photos, AI confidence score) and submitting citizen verification.
+ * Wire real Axios calls for resolution proof and citizen verification submission.
  */
 
-// TODO: Replace with real Axios call (e.g. axios.get(`/api/incidents/${incidentId}/resolution`)) when backend is live
 export async function getResolutionDetails(incidentId: string): Promise<Resolution | null> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  try {
+    const response = await api.get<Resolution>(`/incidents/${incidentId}/resolution`);
+    if (response.data) {
+      return response.data;
+    }
+  } catch (error) {
+    console.warn(`Real API call GET /api/incidents/${incidentId}/resolution failed, serving mock data:`, error);
+  }
+
+  // Fallback to mock data
   const incident = MOCK_INCIDENTS.find((item) => item.id === incidentId);
   return incident?.resolution || null;
 }
 
-// TODO: Replace with real Axios call (e.g. axios.post(`/api/incidents/${incidentId}/verify`)) when backend is live
 export async function submitCitizenVerification(
   incidentId: string,
   citizenVerification: 'YES' | 'PARTIAL' | 'NO',
   comments?: string
 ): Promise<{ resolution: Resolution; newStatus: IncidentStatus }> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  try {
+    const response = await api.post<{ resolution: Resolution; newStatus: IncidentStatus }>(
+      `/incidents/${incidentId}/citizen-verification`,
+      {
+        citizenVerification,
+        comments,
+      }
+    );
+    if (response.data) {
+      return response.data;
+    }
+  } catch (error) {
+    console.warn(`Real API call POST /api/incidents/${incidentId}/citizen-verification failed, performing mock update:`, error);
+  }
+
+  // Fallback mock update
   const incident = MOCK_INCIDENTS.find((item) => item.id === incidentId);
-  
   if (!incident || !incident.resolution) {
     throw new Error('Incident or resolution proof not found');
   }

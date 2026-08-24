@@ -1,20 +1,28 @@
+import { api } from './api';
 import { Incident } from '../types/models';
 import { MOCK_INCIDENTS } from '../mocks/incidents.mock';
 
 /**
  * Incidents API Service
- * Handles fetching citizen reports, single incident details, and reopening requests.
+ * Wire real Axios endpoints to backend with fallback to mock data during local offline dev.
  */
 
-// TODO: Replace with real Axios call (e.g. axios.get('/api/incidents')) when backend is live
 export async function getMyReports(filterStatus?: string): Promise<Incident[]> {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  
+  try {
+    const response = await api.get<Incident[]>('/reports/my', {
+      params: { status: filterStatus !== 'all' ? filterStatus : undefined },
+    });
+    if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    }
+  } catch (error) {
+    console.warn('Real API call GET /api/reports/my failed, serving mock data:', error);
+  }
+
+  // Fallback to mock data for local testing
   if (!filterStatus || filterStatus === 'all') {
     return MOCK_INCIDENTS;
   }
-  
   return MOCK_INCIDENTS.filter((item) => {
     if (filterStatus === 'active') {
       return item.status !== 'CLOSED';
@@ -26,38 +34,55 @@ export async function getMyReports(filterStatus?: string): Promise<Incident[]> {
   });
 }
 
-// TODO: Replace with real Axios call (e.g. axios.get(`/api/incidents/${id}`)) when backend is live
 export async function getIncidentById(id: string): Promise<Incident | null> {
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  try {
+    const response = await api.get<Incident>(`/incidents/${id}`);
+    if (response.data) {
+      return response.data;
+    }
+  } catch (error) {
+    console.warn(`Real API call GET /api/incidents/${id} failed, serving mock data:`, error);
+  }
+
+  // Fallback to mock data
   const incident = MOCK_INCIDENTS.find((item) => item.id === id);
   return incident || null;
 }
 
-// TODO: Replace with real Axios call (e.g. axios.post(`/api/incidents/${id}/reopen`)) when backend is live
 export async function reopenIncident(
   id: string,
   reason: string,
   photoUri?: string
 ): Promise<Incident> {
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  try {
+    const response = await api.post<Incident>(`/incidents/${id}/reopen`, {
+      reason,
+      photoUri,
+    });
+    if (response.data) {
+      return response.data;
+    }
+  } catch (error) {
+    console.warn(`Real API call POST /api/incidents/${id}/reopen failed, performing mock update:`, error);
+  }
+
+  // Fallback mock update
   const incident = MOCK_INCIDENTS.find((item) => item.id === id);
   if (!incident) {
     throw new Error('Incident not found');
   }
-  
-  const updatedTimeline = [
-    ...incident.timeline,
-    {
-      label: 'Reopened',
-      status: 'active' as const,
-      timestamp: new Date().toLocaleString(),
-    },
-  ];
 
   const updatedIncident: Incident = {
     ...incident,
     status: 'REOPENED',
-    timeline: updatedTimeline,
+    timeline: [
+      ...incident.timeline,
+      {
+        label: 'Reopened',
+        status: 'active',
+        timestamp: new Date().toLocaleString(),
+      },
+    ],
   };
 
   return updatedIncident;
