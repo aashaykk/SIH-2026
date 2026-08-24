@@ -75,6 +75,6 @@ export const ISSUE_PRIORITIES = {
 };
 
 export const API_CONFIG = {
-  BASE_URL: 'http://172.20.10.3:3000/api', // Connects to the backend on OMEN PC
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'http://172.20.10.3:3000/api',
   TIMEOUT: 10000,
 };
