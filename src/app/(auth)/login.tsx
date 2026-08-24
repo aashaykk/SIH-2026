@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { TextInput, Text, HelperText, Chip } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,12 +62,13 @@ export default function LoginScreen() {
         >
           {/* Brand Header */}
           <View style={styles.headerContainer}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoText}>NX</Text>
-            </View>
+            <Image
+              source={require('../../../assets/images/vjti_logo.png')}
+              style={styles.logoImage}
+            />
             <Text variant="headlineMedium" style={styles.title}>NAGAR-X</Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              AI-Powered Civic Intelligence & Resolution Network
+              VJTI Civic Intelligence & Operations Portal
             </Text>
           </View>
 
@@ -88,7 +89,7 @@ export default function LoginScreen() {
 
             {/* Quick test credentials */}
             <View style={styles.presetSection}>
-              <Text variant="labelSmall" style={styles.presetLabel}>Quick Demo Accounts:</Text>
+              <Text variant="labelSmall" style={styles.presetLabel}>Quick Demo Account:</Text>
               <View style={styles.chipRow}>
                 <Chip
                   mode="outlined"
@@ -98,27 +99,7 @@ export default function LoginScreen() {
                   style={styles.chip}
                   textStyle={styles.chipText}
                 >
-                  Citizen
-                </Chip>
-                <Chip
-                  mode="outlined"
-                  compact
-                  selected={email === 'officer@nagarx.gov'}
-                  onPress={() => selectPreset('officer@nagarx.gov')}
-                  style={styles.chip}
-                  textStyle={styles.chipText}
-                >
-                  Officer
-                </Chip>
-                <Chip
-                  mode="outlined"
-                  compact
-                  selected={email === 'admin@nagarx.gov'}
-                  onPress={() => selectPreset('admin@nagarx.gov')}
-                  style={styles.chip}
-                  textStyle={styles.chipText}
-                >
-                  Admin
+                  Citizen Demo Account
                 </Chip>
               </View>
             </View>
@@ -169,7 +150,7 @@ export default function LoginScreen() {
           {/* Registration Redirect */}
           <View style={styles.footer}>
             <Text variant="bodyMedium" style={styles.footerText}>
-              Don't have an account?{' '}
+              {"Don't have an account? "}
             </Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
               <Text variant="bodyMedium" style={styles.linkText}>
@@ -200,24 +181,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: THEME.padding.lg,
   },
-  logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
     marginBottom: THEME.padding.sm,
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-  },
-  logoText: {
-    color: '#FFF',
-    fontSize: 28,
-    fontWeight: 'bold',
   },
   title: {
     fontWeight: 'bold',

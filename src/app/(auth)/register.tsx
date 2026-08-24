@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { TextInput, Text, HelperText, SegmentedButtons } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -71,12 +71,13 @@ export default function RegisterScreen() {
         >
           {/* Header */}
           <View style={styles.headerContainer}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoText}>NX</Text>
-            </View>
+            <Image
+              source={require('../../../assets/images/vjti_logo.png')}
+              style={styles.logoImage}
+            />
             <Text variant="headlineMedium" style={styles.title}>Create Account</Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              Join NAGAR-X to report civic issues and verify resolutions
+              Join the VJTI Civic Portal to report and track issues
             </Text>
           </View>
 
@@ -212,24 +213,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: THEME.padding.lg,
   },
-  logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
     marginBottom: THEME.padding.sm,
-    elevation: 4,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-  },
-  logoText: {
-    color: '#FFF',
-    fontSize: 28,
-    fontWeight: 'bold',
   },
   title: {
     fontWeight: 'bold',

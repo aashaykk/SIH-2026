@@ -4,7 +4,7 @@ import { Text, Card, Divider, IconButton } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useIssueDetailsQuery, useVerifyIssueMutation } from '../../hooks/useIssues';
+import { useIssueDetailsQuery } from '../../hooks/useIssues';
 import { AIAnalysisCard } from '../../components/AIAnalysisCard';
 import { StatusTimeline } from '../../components/StatusTimeline';
 import { ResolutionVerificationCard } from '../../components/ResolutionVerificationCard';
@@ -18,7 +18,6 @@ export default function IssueDetailsScreen() {
   const router = useRouter();
 
   const { data: issue, isLoading, isError, refetch } = useIssueDetailsQuery(id || '');
-  const verifyMutation = useVerifyIssueMutation();
 
   if (isLoading) {
     return <LoadingState message="Fetching issue details..." fullScreen />;
@@ -70,10 +69,7 @@ export default function IssueDetailsScreen() {
     }
   };
 
-  const handleVerify = (verified: boolean) => {
-    if (!issue.id) return;
-    verifyMutation.mutate({ id: issue.id, verified });
-  };
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

@@ -7,14 +7,14 @@ const calculatePriorityDetails = (severity, reportCount = 1, options = {}) => {
   const normalizedSeverity = (severity || 'LOW').toUpperCase();
   const count = parseInt(reportCount, 10) || 1;
 
-  // 1. Severity points (Max 25 pts)
-  let severityPoints = 5;
+  // 1. Severity points (Max 80 pts)
+  let severityPoints = 10;
   if (normalizedSeverity === 'MEDIUM') {
-    severityPoints = 15;
+    severityPoints = 35;
   } else if (normalizedSeverity === 'HIGH') {
-    severityPoints = 25;
+    severityPoints = 55;
   } else if (normalizedSeverity === 'CRITICAL') {
-    severityPoints = 25;
+    severityPoints = 80;
   }
 
   // 2. Civic Signal points (Max 20 pts)

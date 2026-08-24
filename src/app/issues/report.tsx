@@ -28,9 +28,7 @@ interface LocationData {
 }
 
 export default function ReportIssueScreen() {
-  const router = useRouter(); const { token } = useAuth();
-  const [description, setDescription] = useState(''); const [imageUri, setImageUri] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false); const [error, setError] = useState('');
+  const router = useRouter();
 
   // Form State
   const [imageUri, setImageUri] = useState<string | null>(null);

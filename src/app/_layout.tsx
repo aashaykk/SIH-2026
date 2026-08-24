@@ -39,7 +39,7 @@ function RootLayoutNav() {
       // If user successfully logs in, transition them to the tabs dashboard
       router.replace("/(tabs)" as any);
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, router]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }

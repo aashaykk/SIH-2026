@@ -19,7 +19,7 @@ LABELS = {
     "WATER_LEAKAGE": "a leaking or burst water pipe",
     "DRAINAGE": "a blocked storm drain or drainage issue",
     "SEWAGE": "sewage overflow or an open sewer",
-    "STREETLIGHT": "a broken street light",
+    "STREETLIGHT": "a broken street light, electrical wire, sparking transformer, fire, or power issue",
     "ILLEGAL_DUMPING": "illegal dumping of construction or household waste",
     "OTHER": "another civic issue",
 }
@@ -43,7 +43,13 @@ def image_embedding(image: Image.Image) -> np.ndarray:
     if embedding_model is None:
         embedding_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
         embedding_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-    values = embedding_processor(images=image, return_tensors="pt")
+    # Prioritize sub-component call to bypass ProcessorMixin.__call__ typing warnings and runtime errors
+    image_proc = getattr(embedding_processor, "image_processor", None) or getattr(embedding_processor, "feature_extractor", None)
+    if image_proc is not None:
+        values = image_proc(images=image, return_tensors="pt")
+    else:
+        # Fallback to direct processor call if sub-component is missing
+        values = embedding_processor(images=image, return_tensors="pt")
     vector = embedding_model.get_image_features(**values).detach().numpy()[0]
     return vector / np.linalg.norm(vector)
 
@@ -57,7 +63,11 @@ async def image_from_upload(upload: UploadFile) -> Image.Image:
 
 def severity(category: str, confidence: float, description: str) -> tuple[str, int, list[str]]:
     text = description.lower()
-    critical_words = ("burst", "flood", "fire", "accident", "danger", "hospital", "school", "injury")
+    critical_words = (
+        "burst", "flood", "fire", "blast", "explosion", "spark", "accident",
+        "danger", "hazard", "hospital", "school", "injury", "injured",
+        "injuries", "hurt", "shock", "current", "wire"
+    )
     high_categories = {"SEWAGE", "WATER_LEAKAGE", "POTHOLE", "DRAINAGE"}
     if any(word in text for word in critical_words):
         return "CRITICAL", 90, ["Description contains a public-safety or flood-risk signal."]

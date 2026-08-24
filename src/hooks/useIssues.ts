@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { issueService, IssueFilters } from '../services/issueService';
-import { Issue, IssueStatus } from '../types/models';
 
 export const ISSUE_KEYS = {
   all: ['issues'] as const,
@@ -71,5 +70,16 @@ export function useReopenIssueMutation() {
       queryClient.invalidateQueries({ queryKey: ISSUE_KEYS.all });
       queryClient.setQueryData(ISSUE_KEYS.detail(updatedIssue.id), updatedIssue);
     },
+  });
+}
+
+/**
+ * Hook to fetch aggregate issues statistics
+ */
+export function useIssuesStatsQuery() {
+  return useQuery({
+    queryKey: [...ISSUE_KEYS.all, 'stats'],
+    queryFn: () => issueService.getIssueStats(),
+    staleTime: 1000 * 30, // 30 seconds
   });
 }

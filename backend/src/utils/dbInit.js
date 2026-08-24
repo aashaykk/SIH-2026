@@ -111,6 +111,69 @@ const initDatabase = async () => {
         ON CONFLICT (ward_number) DO UPDATE SET nagarsevak_id = EXCLUDED.nagarsevak_id`, [nagarsevak.rows[0].id]);
     }
     
+    // Seed default issues if not present
+    const seededIssueCheck = await db.query("SELECT COUNT(*) FROM issues WHERE title = 'Pothole near VJTI Campus'");
+    const hasSeededIssues = parseInt(seededIssueCheck.rows[0].count, 10) > 0;
+    if (!hasSeededIssues) {
+      console.log('Seeding default issues...');
+      const seedIssues = [
+        {
+          title: 'Pothole near VJTI Campus',
+          description: 'Huge pothole near the entrance of VJTI. Dangerous for bikes at night.',
+          category: 'POTHOLE',
+          severity: 'CRITICAL',
+          priority: 'CRITICAL',
+          status: 'REPORTED',
+          latitude: 18.5196,
+          longitude: 73.8553,
+          report_count: 3,
+          department: 'ROADS',
+          ai_confidence: 0.96,
+          priority_score: 85,
+          ai_reasons: JSON.stringify(['High danger level. Pothole detected on a heavily congested urban route near educational institutes.'])
+        },
+        {
+          title: 'Garbage Pile in Ward 12 Market',
+          description: 'Uncollected commercial garbage heap near the fruit market stalls. Bad odor and health risk.',
+          category: 'GARBAGE',
+          severity: 'MEDIUM',
+          priority: 'HIGH',
+          status: 'ACKNOWLEDGED',
+          latitude: 18.5244,
+          longitude: 73.8621,
+          report_count: 5,
+          department: 'SANITATION',
+          ai_confidence: 0.88,
+          priority_score: 55,
+          ai_reasons: JSON.stringify(['Sanitation risk. Piled up commercial refuse blocks pedestrian walkway.'])
+        },
+        {
+          title: 'Water Leakage on Senapati Bapat Road',
+          description: 'Water pipeline burst. Clean drinking water wasting onto the street for 2 days.',
+          category: 'WATER_LEAKAGE',
+          severity: 'HIGH',
+          priority: 'HIGH',
+          status: 'IN_PROGRESS',
+          latitude: 18.5308,
+          longitude: 73.8385,
+          report_count: 1,
+          department: 'WATER',
+          ai_confidence: 0.91,
+          priority_score: 65,
+          ai_reasons: JSON.stringify(['Utility leak. Clean water pressure dropping. Main road flooding risk.'])
+        }
+      ];
+
+      for (const i of seedIssues) {
+        await db.query(
+          `INSERT INTO issues (title, description, category, severity, priority, status, latitude, longitude, report_count, department, ai_confidence, priority_score, ai_reasons)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          [i.title, i.description, i.category, i.severity, i.priority, i.status, i.latitude, i.longitude, i.report_count, i.department, i.ai_confidence, i.priority_score, i.ai_reasons]
+        );
+      }
+      console.log('✔ Default issues seeded successfully.');
+    }
+
     console.log('Database initialization completed successfully.');
   } catch (error) {
     console.error('✘ Error initializing database:', error);

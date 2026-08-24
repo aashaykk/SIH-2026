@@ -14,6 +14,9 @@ router.post('/', upload.single('image'), issueController.createIssue);
 // Get list of issues (supports optional query filters)
 router.get('/', issueController.getIssues);
 
+// Get dashboard stats
+router.get('/stats', issueController.getStats);
+
 // Get single issue details by ID
 router.get('/:id', issueController.getIssueById);
 

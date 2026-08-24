@@ -3,11 +3,11 @@ import Constants from 'expo-constants';
 
 export const COLORS = {
   // Brand colors
-  primary: '#4F46E5',     // Sleek Indigo
-  primaryLight: '#EEF2FF',
-  primaryDark: '#3730A3',
-  accent: '#06B6D4',      // Radiant Teal
-  background: '#F9FAFB',  // Warm Off-White
+  primary: '#0D2240',     // Deep Navy
+  primaryLight: '#E6EFF8',
+  primaryDark: '#0A1C33',
+  accent: '#0D9488',      // Gov Teal
+  background: '#F1F5F9',  // Light Blue-Gray
   surface: '#FFFFFF',
   
   // Statuses & Severity Colors
@@ -17,10 +17,10 @@ export const COLORS = {
   info: '#3B82F6',        // Electric Blue
   
   // Neutral colors
-  text: '#111827',        // Very dark gray (almost black)
-  textSecondary: '#6B7280',// Slate gray
-  border: '#E5E7EB',      // Soft gray borders
-  placeholder: '#9CA3AF',
+  text: '#0F172A',        // Very dark slate
+  textSecondary: '#64748B',// Slate gray
+  border: '#CBD5E1',      // Subtle blue-gray border
+  placeholder: '#94A3B8',
   cardBg: '#FFFFFF',
   
   // App specific categories

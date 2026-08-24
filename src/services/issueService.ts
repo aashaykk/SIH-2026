@@ -108,6 +108,17 @@ export const issueService = {
 
     throw new Error(response.data?.message || 'Failed to reopen issue');
   },
+
+  /**
+   * Fetch aggregate statistics
+   */
+  async getIssueStats(): Promise<any> {
+    const response = await apiClient.get<ApiResponse<any>>('/issues/stats');
+    if (response.data && response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    return null;
+  },
 };
 
 export default issueService;

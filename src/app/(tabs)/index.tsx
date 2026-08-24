@@ -1,17 +1,17 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Image } from 'react-native';
 import { Text, Card, Avatar, IconButton } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../../features/auth/AuthContext';
-import { useIssuesQuery } from '../../hooks/useIssues';
+import { useIssuesQuery, useIssuesStatsQuery } from '../../hooks/useIssues';
 import { IssueCard } from '../../components/IssueCard';
-import { PrimaryButton } from '../../components/UI/PrimaryButton';
 import { LoadingState } from '../../components/UI/LoadingState';
 import { ErrorState } from '../../components/UI/ErrorState';
 import { EmptyState } from '../../components/UI/EmptyState';
 import { COLORS, THEME } from '../../config/constants';
 import { Issue } from '../../types/models';
+
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -19,26 +19,15 @@ export default function HomeScreen() {
 
   // Fetch live civic issues via React Query
   const { data: issues = [], isLoading, isError, refetch, isRefetching } = useIssuesQuery();
+  const { data: stats, refetch: refetchStats } = useIssuesStatsQuery();
 
   const onRefresh = useCallback(() => {
     refetch();
-  }, [refetch]);
+    refetchStats();
+  }, [refetch, refetchStats]);
 
-  // Compute greeting dynamically
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
-  // Separate into Active Reports and Recently Resolved
   const activeReports = issues.filter(
     (issue) => issue.status !== 'RESOLVED' && issue.status !== 'VERIFIED'
-  );
-
-  const resolvedReports = issues.filter(
-    (issue) => issue.status === 'RESOLVED' || issue.status === 'VERIFIED'
   );
 
   const handleIssuePress = (issue: Issue) => {
@@ -47,6 +36,10 @@ export default function HomeScreen() {
 
   const handleReportPress = () => {
     router.push('/issues/report' as any);
+  };
+
+  const handleMyReportsPress = () => {
+    router.push('/(tabs)/my-reports' as any);
   };
 
   const handleProfilePress = () => {
@@ -70,333 +63,412 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefetching}
-          onRefresh={onRefresh}
-          colors={[COLORS.primary]}
-          tintColor={COLORS.primary}
-        />
-      }
-    >
-      {/* 1. Header: Greeting, User Profile, Notifications */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.userProfileRow} onPress={handleProfilePress}>
-          <Avatar.Text
-            size={46}
-            label={user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'C'}
-            style={styles.avatar}
+    <View style={styles.outerContainer}>
+      {/* 1. Header: VJTI Navy Header Bar */}
+      <View style={styles.navyHeader}>
+        <View style={styles.headerLeft}>
+          <Image
+            source={require('../../../assets/images/vjti_logo.png')}
+            style={styles.logoImage}
           />
-          <View style={styles.welcomeTextGroup}>
-            <Text variant="bodySmall" style={styles.greetingText}>
-              {getGreeting()},
-            </Text>
-            <Text variant="titleMedium" style={styles.userName} numberOfLines={1}>
-              {user?.name || 'Citizen'}
-            </Text>
+          <View style={styles.brandTextGroup}>
+            <Text style={styles.brandTitle}>VJTI Portal</Text>
+            <Text style={styles.brandSubtitle}>Mumbai, India</Text>
           </View>
-        </TouchableOpacity>
-
-        <View style={styles.headerActions}>
+        </View>
+        <View style={styles.headerRight}>
           <IconButton
             icon="bell-outline"
-            iconColor={COLORS.textSecondary}
+            iconColor="#FFFFFF"
             size={22}
             onPress={() => {}}
-            style={styles.iconBtn}
+            style={styles.headerActionBtn}
           />
-          <IconButton
-            icon="cog-outline"
-            iconColor={COLORS.textSecondary}
-            size={22}
-            onPress={handleProfilePress}
-            style={styles.iconBtn}
-          />
+          <TouchableOpacity onPress={handleProfilePress}>
+            <Avatar.Text
+              size={34}
+              label={user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'C'}
+              style={styles.headerAvatar}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* 2. Primary CTA: Report Issue */}
-      <Card style={styles.reportCtaCard} mode="contained">
-        <Card.Content style={styles.ctaContent}>
-          <View style={styles.ctaHeaderRow}>
-            <View style={styles.ctaIconContainer}>
-              <MaterialCommunityIcons name="bullhorn-variant" size={26} color={COLORS.primary} />
-            </View>
-            <View style={styles.ctaTextGroup}>
-              <Text variant="titleMedium" style={styles.ctaTitle}>
-                Report a Civic Issue
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
+      >
+        {/* 2. Hero Section: Transparency and Trust Banner */}
+        <Card style={styles.heroCard} mode="contained">
+          <Card.Content style={styles.heroContent}>
+            <View style={styles.heroTextCol}>
+              <Text style={styles.heroTitle}>Serving Citizens with Transparency and Trust</Text>
+              <Text style={styles.heroSubtitle}>
+                VJTI AI-Powered Civic Intelligence and Operations Network
               </Text>
-              <Text variant="bodySmall" style={styles.ctaSubtitle}>
-                Spot a pothole, garbage, or broken light? Report it instantly.
+              <View style={styles.heroBtnRow}>
+                <TouchableOpacity style={styles.heroBtnPrimary} onPress={handleReportPress}>
+                  <Text style={styles.heroBtnPrimaryText}>Report Issue</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.heroBtnSecondary} onPress={handleMyReportsPress}>
+                  <Text style={styles.heroBtnSecondaryText}>My Reports</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <Image
+              source={require('../../../assets/images/vjti_building.jpg')}
+              style={styles.heroBuildingImage}
+            />
+          </Card.Content>
+        </Card>
+
+        {/* 3. Section: Public Services Grid */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Public Services</Text>
+        </View>
+        <View style={styles.servicesGrid}>
+          <TouchableOpacity style={styles.serviceItemCard} onPress={handleReportPress}>
+            <View style={[styles.serviceIconWrapper, { backgroundColor: '#E6F4EA' }]}>
+              <MaterialCommunityIcons name="bullhorn-variant-outline" size={24} color="#137333" />
+            </View>
+            <Text style={styles.serviceItemLabel}>Report Issue</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.serviceItemCard} onPress={handleMyReportsPress}>
+            <View style={[styles.serviceIconWrapper, { backgroundColor: '#E8F0FE' }]}>
+              <MaterialCommunityIcons name="file-document-outline" size={24} color="#1A73E8" />
+            </View>
+            <Text style={styles.serviceItemLabel}>My Grievances</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.serviceItemCard} onPress={handleProfilePress}>
+            <View style={[styles.serviceIconWrapper, { backgroundColor: '#FEF7E0' }]}>
+              <MaterialCommunityIcons name="account-circle-outline" size={24} color="#B06000" />
+            </View>
+            <Text style={styles.serviceItemLabel}>My Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 4. Section: Announcements */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Latest Announcements</Text>
+        </View>
+        <Card style={styles.announcementCard} mode="contained">
+          <Card.Content style={styles.announcementContent}>
+            <View style={styles.announcementIconBox}>
+              <MaterialCommunityIcons name="alert-decagram-outline" size={22} color={COLORS.primary} />
+            </View>
+            <View style={styles.announcementTextBox}>
+              <Text style={styles.announcementTitle}>Ward 12 Infrastructure Upgrades</Text>
+              <Text style={styles.announcementDesc}>
+                AI-powered road clearing teams scheduled for Senapati Bapat Road next Monday.
               </Text>
             </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={COLORS.textSecondary} />
+          </Card.Content>
+        </Card>
+
+        {/* 5. Section: Statistics */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Statistics</Text>
+        </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{stats?.resolved ?? 0}</Text>
+            <Text style={styles.statLabel}>Resolutions Verified</Text>
           </View>
-
-          <PrimaryButton
-            onPress={handleReportPress}
-            icon="camera-plus"
-            style={styles.reportButton}
-          >
-            REPORT ISSUE
-          </PrimaryButton>
-        </Card.Content>
-      </Card>
-
-      {/* Summary KPI Badges */}
-      <View style={styles.metricsRow}>
-        <View style={[styles.metricCard, { borderLeftColor: COLORS.info }]}>
-          <Text variant="headlineSmall" style={[styles.metricNumber, { color: COLORS.info }]}>
-            {activeReports.length}
-          </Text>
-          <Text variant="labelSmall" style={styles.metricLabel}>
-            Active Reports
-          </Text>
-        </View>
-
-        <View style={[styles.metricCard, { borderLeftColor: COLORS.success }]}>
-          <Text variant="headlineSmall" style={[styles.metricNumber, { color: COLORS.success }]}>
-            {resolvedReports.length}
-          </Text>
-          <Text variant="labelSmall" style={styles.metricLabel}>
-            Resolved
-          </Text>
-        </View>
-
-        <View style={[styles.metricCard, { borderLeftColor: COLORS.primary }]}>
-          <Text variant="headlineSmall" style={[styles.metricNumber, { color: COLORS.primary }]}>
-            {issues.length}
-          </Text>
-          <Text variant="labelSmall" style={styles.metricLabel}>
-            Total Issues
-          </Text>
-        </View>
-      </View>
-
-      {/* 3. Section: Active Reports */}
-      <View style={styles.sectionHeaderRow}>
-        <View style={styles.sectionTitleGroup}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Active Reports
-          </Text>
-          <View style={styles.countPill}>
-            <Text style={styles.countText}>{activeReports.length}</Text>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{stats?.total ?? 0}</Text>
+            <Text style={styles.statLabel}>Grievances Filed</Text>
           </View>
         </View>
-      </View>
 
-      {activeReports.length > 0 ? (
-        activeReports.map((issue) => (
-          <IssueCard
-            key={issue.id}
-            issue={issue}
-            onPress={handleIssuePress}
-          />
-        ))
-      ) : (
-        <EmptyState
-          icon="check-circle-outline"
-          title="No Active Issues"
-          message="There are currently no open or unresolved reports in your area."
-          actionText="Report Issue"
-          onAction={handleReportPress}
-        />
-      )}
-
-      {/* 4. Section: Recently Resolved */}
-      <View style={[styles.sectionHeaderRow, styles.resolvedSectionHeader]}>
-        <View style={styles.sectionTitleGroup}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Recently Resolved
-          </Text>
-          <View style={[styles.countPill, { backgroundColor: COLORS.success + '15' }]}>
-            <Text style={[styles.countText, { color: COLORS.success }]}>
-              {resolvedReports.length}
-            </Text>
+        {/* 6. Section: Grievance Feed */}
+        <View style={styles.sectionHeaderRow}>
+          <View style={styles.feedTitleGroup}>
+            <Text style={styles.sectionTitle}>Active Grievances</Text>
+            <View style={styles.feedCountPill}>
+              <Text style={styles.feedCountText}>{activeReports.length}</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {resolvedReports.length > 0 ? (
-        resolvedReports.map((issue) => (
-          <IssueCard
-            key={issue.id}
-            issue={issue}
-            onPress={handleIssuePress}
+        {activeReports.length > 0 ? (
+          activeReports.map((issue) => (
+            <IssueCard
+              key={issue.id}
+              issue={issue}
+              onPress={handleIssuePress}
+            />
+          ))
+        ) : (
+          <EmptyState
+            icon="check-circle-outline"
+            title="No Active Issues"
+            message="All civic reports have been resolved. Excellent job, VJTI Ward Authorities!"
+            actionText="Report New Issue"
+            onAction={handleReportPress}
           />
-        ))
-      ) : (
-        <View style={styles.resolvedEmptyCard}>
-          <MaterialCommunityIcons
-            name="history"
-            size={32}
-            color={COLORS.textSecondary}
-            style={{ opacity: 0.6 }}
-          />
-          <Text variant="bodySmall" style={styles.resolvedEmptyText}>
-            Resolved civic reports will appear here once verified.
-          </Text>
-        </View>
-      )}
-    </ScrollView>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  navyHeader: {
+    backgroundColor: '#0D2240',
+    height: 90,
+    paddingTop: 36,
+    paddingHorizontal: THEME.padding.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoImage: {
+    width: 38,
+    height: 38,
+    resizeMode: 'contain',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 2,
+  },
+  brandTextGroup: {
+    flexDirection: 'column',
+  },
+  brandTitle: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  brandSubtitle: {
+    color: '#CBD5E1',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerActionBtn: {
+    margin: 0,
+  },
+  headerAvatar: {
+    backgroundColor: COLORS.accent,
+  },
+  container: {
+    flex: 1,
   },
   scrollContent: {
     padding: THEME.padding.md,
     paddingBottom: THEME.padding.xl * 2,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: THEME.padding.md,
-  },
-  userProfileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatar: {
-    backgroundColor: COLORS.primary,
-  },
-  welcomeTextGroup: {
-    marginLeft: THEME.padding.sm,
-    flex: 1,
-  },
-  greetingText: {
-    color: COLORS.textSecondary,
-    fontSize: 12,
-  },
-  userName: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  headerActions: {
-    flexDirection: 'row',
-  },
-  iconBtn: {
-    margin: 0,
-  },
-  reportCtaCard: {
-    backgroundColor: COLORS.surface,
+  heroCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: THEME.roundness * 1.5,
-    borderWidth: 1.5,
-    borderColor: '#E0E7FF',
-    marginBottom: THEME.padding.md,
-    elevation: 3,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-  },
-  ctaContent: {
-    padding: THEME.padding.md,
-  },
-  ctaHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: THEME.padding.md,
-  },
-  ctaIconContainer: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: COLORS.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: THEME.padding.sm,
-  },
-  ctaTextGroup: {
-    flex: 1,
-  },
-  ctaTitle: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  ctaSubtitle: {
-    color: COLORS.textSecondary,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  reportButton: {
-    borderRadius: THEME.roundness,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: THEME.padding.lg,
-    gap: 8,
-  },
-  metricCard: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    padding: THEME.padding.sm,
-    borderRadius: THEME.roundness,
-    borderLeftWidth: 3.5,
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginBottom: THEME.padding.md,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    overflow: 'hidden',
+  },
+  heroContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    padding: THEME.padding.md,
+    gap: 12,
   },
-  metricNumber: {
-    fontWeight: 'bold',
-    lineHeight: 28,
+  heroTextCol: {
+    flex: 1.1,
   },
-  metricLabel: {
+  heroTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0D2240',
+    lineHeight: 22,
+  },
+  heroSubtitle: {
+    fontSize: 11,
     color: COLORS.textSecondary,
-    fontSize: 10,
-    marginTop: 2,
-    fontWeight: '500',
+    marginTop: 6,
+    lineHeight: 16,
+  },
+  heroBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+  },
+  heroBtnPrimary: {
+    backgroundColor: '#0D2240',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  heroBtnPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  heroBtnSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#0D2240',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  heroBtnSecondaryText: {
+    color: '#0D2240',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  heroBuildingImage: {
+    flex: 0.9,
+    height: 120,
+    borderRadius: 10,
+    resizeMode: 'cover',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: THEME.padding.md,
     marginBottom: THEME.padding.sm,
-    marginTop: THEME.padding.xs,
   },
-  resolvedSectionHeader: {
-    marginTop: THEME.padding.lg,
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0D2240',
   },
-  sectionTitleGroup: {
+  servicesGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: THEME.padding.md,
+  },
+  serviceItemCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: THEME.roundness,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 14,
+    alignItems: 'center',
+    gap: 8,
+    elevation: 1,
+  },
+  serviceIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  serviceItemLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  announcementCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: THEME.roundness,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: THEME.padding.md,
+  },
+  announcementContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  announcementIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E6EFF8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  announcementTextBox: {
+    flex: 1,
+  },
+  announcementTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  announcementDesc: {
+    fontSize: 10.5,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+    lineHeight: 14,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: THEME.padding.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: THEME.roundness,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0D2240',
+  },
+  statLabel: {
+    fontSize: 10,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  feedTitleGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  sectionTitle: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  countPill: {
-    backgroundColor: COLORS.primaryLight,
+  feedCountPill: {
+    backgroundColor: '#E6EFF8',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
-  countText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  resolvedEmptyCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: THEME.roundness,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: THEME.padding.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  resolvedEmptyText: {
-    color: COLORS.textSecondary,
-    textAlign: 'center',
+  feedCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0D2240',
   },
 });

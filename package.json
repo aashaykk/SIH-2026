@@ -38,6 +38,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
   "scripts": {
@@ -46,7 +48,9 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "start:ai": "cd ai-service && .venv\\Scripts\\uvicorn app:app --host 0.0.0.0 --port 5000",
+    "start:dashboard": "cd dashboard && npm run dev"
   },
   "private": true
 }
