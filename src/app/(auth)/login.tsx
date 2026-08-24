@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { TextInput, Text, HelperText, Chip } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../features/auth/AuthContext';
+import { PrimaryButton } from '../../components/UI/PrimaryButton';
 import { COLORS, THEME } from '../../config/constants';
 
 export default function LoginScreen() {
@@ -17,28 +18,36 @@ export default function LoginScreen() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setErrorMsg('Please fill in all fields');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setErrorMsg('Please enter both email and password.');
       return;
     }
-    
-    // Quick email format check
+
     const emailRegex = /\S+@\S+\.\S+/;
-    if (!emailRegex.test(email)) {
-      setErrorMsg('Please enter a valid email address');
+    if (!emailRegex.test(trimmedEmail)) {
+      setErrorMsg('Please enter a valid email address.');
       return;
     }
 
     setErrorMsg('');
     setLoading(true);
+
     try {
-      await login(email, password);
+      await login(trimmedEmail, password);
       router.replace('/(tabs)' as any);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Login failed. Please try again.');
+      setErrorMsg(err.message || 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Quick preset loader for demonstration / rapid testing
+  const selectPreset = (presetEmail: string) => {
+    setEmail(presetEmail);
+    setPassword('password123');
+    setErrorMsg('');
   };
 
   return (
@@ -47,10 +56,13 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Brand Header */}
           <View style={styles.headerContainer}>
-            <View style={styles.logoPlaceholder}>
+            <View style={styles.logoBadge}>
               <Text style={styles.logoText}>NX</Text>
             </View>
             <Text variant="headlineMedium" style={styles.title}>NAGAR-X</Text>
@@ -59,13 +71,57 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.formContainer}>
+          {/* Login Card */}
+          <View style={styles.card}>
+            <Text variant="titleLarge" style={styles.cardTitle}>Sign In</Text>
+            <Text variant="bodySmall" style={styles.cardSubtitle}>
+              Access your civic dashboard and reports
+            </Text>
+
             {errorMsg ? (
-              <HelperText type="error" visible={!!errorMsg} style={styles.errorText}>
-                {errorMsg}
-              </HelperText>
+              <View style={styles.errorContainer}>
+                <HelperText type="error" visible={!!errorMsg} style={styles.errorText}>
+                  {errorMsg}
+                </HelperText>
+              </View>
             ) : null}
+
+            {/* Quick test credentials */}
+            <View style={styles.presetSection}>
+              <Text variant="labelSmall" style={styles.presetLabel}>Quick Demo Accounts:</Text>
+              <View style={styles.chipRow}>
+                <Chip
+                  mode="outlined"
+                  compact
+                  selected={email === 'citizen@nagarx.gov'}
+                  onPress={() => selectPreset('citizen@nagarx.gov')}
+                  style={styles.chip}
+                  textStyle={styles.chipText}
+                >
+                  Citizen
+                </Chip>
+                <Chip
+                  mode="outlined"
+                  compact
+                  selected={email === 'officer@nagarx.gov'}
+                  onPress={() => selectPreset('officer@nagarx.gov')}
+                  style={styles.chip}
+                  textStyle={styles.chipText}
+                >
+                  Officer
+                </Chip>
+                <Chip
+                  mode="outlined"
+                  compact
+                  selected={email === 'admin@nagarx.gov'}
+                  onPress={() => selectPreset('admin@nagarx.gov')}
+                  style={styles.chip}
+                  textStyle={styles.chipText}
+                >
+                  Admin
+                </Chip>
+              </View>
+            </View>
 
             <TextInput
               label="Email Address"
@@ -75,7 +131,8 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               style={styles.input}
-              left={<TextInput.Icon icon="email-outline" />}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="email-outline" color={COLORS.textSecondary} />}
               activeOutlineColor={COLORS.primary}
             />
 
@@ -87,40 +144,38 @@ export default function LoginScreen() {
               secureTextEntry={secureTextEntry}
               autoCapitalize="none"
               style={styles.input}
-              left={<TextInput.Icon icon="lock-outline" />}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="lock-outline" color={COLORS.textSecondary} />}
               right={
                 <TextInput.Icon 
                   icon={secureTextEntry ? "eye-outline" : "eye-off-outline"} 
                   onPress={() => setSecureTextEntry(!secureTextEntry)} 
+                  color={COLORS.textSecondary}
                 />
               }
               activeOutlineColor={COLORS.primary}
             />
 
-            <Button
-              mode="contained"
+            <PrimaryButton
               onPress={handleLogin}
               loading={loading}
               disabled={loading}
-              style={styles.loginButton}
-              labelStyle={styles.buttonLabel}
+              style={styles.submitButton}
             >
-              Sign In
-            </Button>
+              Sign In to Account
+            </PrimaryButton>
           </View>
 
           {/* Registration Redirect */}
           <View style={styles.footer}>
             <Text variant="bodyMedium" style={styles.footerText}>
-              New to NAGAR-X?{' '}
+              Don't have an account?{' '}
             </Text>
-            <Text
-              variant="bodyMedium"
-              style={styles.linkText}
-              onPress={() => router.push('/(auth)/register')}
-            >
-              Register Account
-            </Text>
+            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+              <Text variant="bodyMedium" style={styles.linkText}>
+                Register Here
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -143,25 +198,25 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: THEME.padding.xl,
+    marginBottom: THEME.padding.lg,
   },
-  logoPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: THEME.padding.md,
+    marginBottom: THEME.padding.sm,
     elevation: 4,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   logoText: {
     color: '#FFF',
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
   },
   title: {
@@ -173,36 +228,82 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: COLORS.textSecondary,
     marginTop: THEME.padding.xs,
-    paddingHorizontal: THEME.padding.sm,
+    paddingHorizontal: THEME.padding.md,
+    fontSize: 13,
   },
-  formContainer: {
-    width: '100%',
-    marginBottom: THEME.padding.lg,
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: THEME.roundness * 1.5,
+    padding: THEME.padding.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
   },
-  input: {
+  cardTitle: {
+    fontWeight: 'bold',
+    color: COLORS.text,
+  },
+  cardSubtitle: {
+    color: COLORS.textSecondary,
     marginBottom: THEME.padding.md,
+    marginTop: 2,
+  },
+  presetSection: {
+    marginBottom: THEME.padding.md,
+    padding: THEME.padding.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: THEME.roundness,
+  },
+  presetLabel: {
+    color: COLORS.textSecondary,
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  chip: {
     backgroundColor: COLORS.surface,
   },
-  loginButton: {
-    marginTop: THEME.padding.sm,
-    paddingVertical: 6,
-    borderRadius: THEME.roundness,
-    backgroundColor: COLORS.primary,
+  chipText: {
+    fontSize: 11,
   },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  errorContainer: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: THEME.roundness,
+    padding: THEME.padding.xs,
+    marginBottom: THEME.padding.sm,
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   errorText: {
-    textAlign: 'center',
-    fontSize: 14,
+    color: COLORS.error,
+    fontSize: 13,
+    margin: 0,
+    padding: 0,
+  },
+  input: {
     marginBottom: THEME.padding.sm,
+    backgroundColor: COLORS.surface,
+  },
+  inputOutline: {
+    borderRadius: THEME.roundness,
+    borderColor: COLORS.border,
+  },
+  submitButton: {
+    marginTop: THEME.padding.sm,
+    paddingVertical: 6,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: THEME.padding.md,
+    marginTop: THEME.padding.lg,
   },
   footerText: {
     color: COLORS.textSecondary,
@@ -212,3 +313,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+

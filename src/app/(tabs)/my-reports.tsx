@@ -1,130 +1,56 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, Pressable } from 'react-native';
-import { Text, SegmentedButtons, Card, Avatar } from 'react-native-paper';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
+import { SegmentedButtons } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { COLORS, THEME, CIVIC_CATEGORIES, ISSUE_STATUSES, ISSUE_PRIORITIES } from '../../config/constants';
-
-interface IssueItem {
-  id: string;
-  title: string;
-  category: string;
-  status: 'SUBMITTED' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'PENDING_SYNC';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  createdAt: string;
-  locationName: string;
-}
+import { useIssuesQuery } from '../../hooks/useIssues';
+import { IssueCard } from '../../components/IssueCard';
+import { LoadingState } from '../../components/UI/LoadingState';
+import { ErrorState } from '../../components/UI/ErrorState';
+import { EmptyState } from '../../components/UI/EmptyState';
+import { COLORS, THEME } from '../../config/constants';
+import { Issue } from '../../types/models';
 
 export default function MyReportsScreen() {
-  const [filter, setFilter] = useState('active');
+  const [filter, setFilter] = useState<'active' | 'resolved' | 'all'>('active');
   const router = useRouter();
 
-  // Mock list of issues
-  const mockIssues: IssueItem[] = [
-    {
-      id: '101',
-      title: 'Large Pothole near Central Park Gate 2',
-      category: 'pothole',
-      status: 'IN_PROGRESS',
-      priority: 'HIGH',
-      createdAt: '2026-08-22',
-      locationName: 'Central Park Main Rd, Ward 4',
-    },
-    {
-      id: '102',
-      title: 'Uncollected Garbage Pile outside Market',
-      category: 'garbage',
-      status: 'RESOLVED',
-      priority: 'MEDIUM',
-      createdAt: '2026-08-20',
-      locationName: 'City Market Square, Ward 12',
-    },
-    {
-      id: '103',
-      title: 'Water pipe burst leakage on pavement',
-      category: 'water_leakage',
-      status: 'ASSIGNED',
-      priority: 'HIGH',
-      createdAt: '2026-08-23',
-      locationName: '3rd Cross St, Sector 2',
-    },
-    {
-      id: '104',
-      title: 'Streetlight blinking continuously',
-      category: 'streetlight',
-      status: 'SUBMITTED',
-      priority: 'LOW',
-      createdAt: '2026-08-24',
-      locationName: 'Greenwood Lane, Ward 7',
-    },
-  ];
+  const { data: issues = [], isLoading, isError, refetch, isRefetching } = useIssuesQuery();
 
-  const filteredIssues = mockIssues.filter(issue => {
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  const filteredIssues = issues.filter((issue) => {
     if (filter === 'active') {
-      return issue.status !== 'RESOLVED' && issue.status !== 'PENDING_SYNC';
+      return issue.status !== 'RESOLVED' && issue.status !== 'VERIFIED';
     }
     if (filter === 'resolved') {
-      return issue.status === 'RESOLVED';
-    }
-    if (filter === 'offline') {
-      return issue.status === 'PENDING_SYNC';
+      return issue.status === 'RESOLVED' || issue.status === 'VERIFIED';
     }
     return true; // 'all'
   });
 
-  const getCategoryDetails = (catId: string) => {
-    return CIVIC_CATEGORIES.find(c => c.id === catId) || { label: 'General', icon: 'alert-circle', color: COLORS.textSecondary };
+  const handleIssuePress = (issue: Issue) => {
+    router.push(`/issues/${issue.id}` as any);
   };
 
-  const renderIssueCard = ({ item }: { item: IssueItem }) => {
-    const cat = getCategoryDetails(item.category);
-    const statusInfo = ISSUE_STATUSES[item.status];
-    const priorityInfo = ISSUE_PRIORITIES[item.priority];
+  const handleReportNew = () => {
+    router.push('/issues/report' as any);
+  };
 
+  if (isLoading && !isRefetching) {
+    return <LoadingState message="Loading your civic reports..." fullScreen />;
+  }
+
+  if (isError && !isRefetching && issues.length === 0) {
     return (
-      <Card 
-        style={styles.card} 
-        mode="contained" 
-        onPress={() => router.push(`/issues/${item.id}` as any)}
-      >
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.cardHeader}>
-            <Avatar.Icon 
-              size={36} 
-              icon={cat.icon} 
-              style={{ backgroundColor: cat.color + '15' }} // 15% opacity tint
-              color={cat.color} 
-            />
-            <View style={styles.headerText}>
-              <Text variant="titleMedium" style={styles.issueTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <Text variant="bodySmall" style={styles.locationText}>
-                {item.locationName}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.cardDivider} />
-
-          <View style={styles.cardFooter}>
-            <View style={styles.badgeRow}>
-              <View style={[styles.badge, { backgroundColor: statusInfo.color + '15' }]}>
-                <Text style={[styles.badgeText, { color: statusInfo.color }]}>
-                  {statusInfo.label}
-                </Text>
-              </View>
-              <View style={[styles.badge, { backgroundColor: priorityInfo.color + '15' }]}>
-                <Text style={[styles.badgeText, { color: priorityInfo.color }]}>
-                  {priorityInfo.label} Priority
-                </Text>
-              </View>
-            </View>
-            <Text variant="bodySmall" style={styles.dateText}>{item.createdAt}</Text>
-          </View>
-        </Card.Content>
-      </Card>
+      <ErrorState
+        title="Unable to load reports"
+        message="Could not connect to the server. Please check your network connection."
+        onRetry={() => refetch()}
+      />
     );
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -132,32 +58,45 @@ export default function MyReportsScreen() {
       <View style={styles.filterSection}>
         <SegmentedButtons
           value={filter}
-          onValueChange={setFilter}
+          onValueChange={(val) => setFilter(val as any)}
           buttons={[
-            { value: 'active', label: 'Active' },
-            { value: 'resolved', label: 'Resolved' },
-            { value: 'offline', label: 'Offline' },
-            { value: 'all', label: 'All' },
+            { value: 'active', label: `Active (${issues.filter((i) => i.status !== 'RESOLVED' && i.status !== 'VERIFIED').length})` },
+            { value: 'resolved', label: `Resolved (${issues.filter((i) => i.status === 'RESOLVED' || i.status === 'VERIFIED').length})` },
+            { value: 'all', label: `All (${issues.length})` },
           ]}
           style={styles.segmentedButtons}
           theme={{ colors: { secondaryContainer: COLORS.primaryLight } }}
         />
       </View>
 
-      {/* List */}
+      {/* Reports List */}
       <FlatList
         data={filteredIssues}
         keyExtractor={(item) => item.id}
-        renderItem={renderIssueCard}
-        contentContainerStyle={styles.listContainer}
+        renderItem={({ item }) => (
+          <IssueCard issue={item} onPress={handleIssuePress} />
+        )}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={onRefresh}
+            colors={[COLORS.primary]}
+            tintColor={COLORS.primary}
+          />
+        }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Avatar.Icon size={64} icon="alert-outline" style={{ backgroundColor: 'transparent' }} color={COLORS.textSecondary} />
-            <Text variant="titleMedium" style={styles.emptyTitle}>No reports found</Text>
-            <Text variant="bodyMedium" style={styles.emptySub}>
-              Issues in this category will appear here.
-            </Text>
-          </View>
+          <EmptyState
+            icon={filter === 'resolved' ? 'checkbox-marked-circle-outline' : 'clipboard-text-outline'}
+            title={filter === 'resolved' ? 'No Resolved Issues Yet' : 'No Reports Found'}
+            message={
+              filter === 'resolved'
+                ? 'Resolved civic reports will appear here once verified.'
+                : 'You have not submitted any civic reports in this category.'
+            }
+            actionText="Report Civic Issue"
+            onAction={handleReportNew}
+          />
         }
       />
     </View>
@@ -173,78 +112,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: THEME.padding.md,
     paddingTop: THEME.padding.md,
     paddingBottom: THEME.padding.sm,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   segmentedButtons: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
   },
-  listContainer: {
+  listContent: {
     padding: THEME.padding.md,
-  },
-  card: {
-    marginBottom: THEME.padding.sm,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: THEME.roundness,
-  },
-  cardContent: {
-    paddingHorizontal: THEME.padding.md,
-    paddingVertical: THEME.padding.sm,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerText: {
-    flex: 1,
-    marginLeft: THEME.padding.sm,
-  },
-  issueTitle: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-  },
-  locationText: {
-    color: COLORS.textSecondary,
-  },
-  cardDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: THEME.padding.sm,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  badgeRow: {
-    flexDirection: 'row',
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginRight: 6,
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  dateText: {
-    color: COLORS.textSecondary,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: THEME.padding.xl * 2,
-  },
-  emptyTitle: {
-    fontWeight: 'bold',
-    color: COLORS.text,
-    marginTop: THEME.padding.sm,
-  },
-  emptySub: {
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: THEME.padding.xs,
+    paddingBottom: THEME.padding.xl * 2,
+    flexGrow: 1,
   },
 });
